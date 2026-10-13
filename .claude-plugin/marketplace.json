@@ -1,0 +1,15 @@
+{
+  "name": "react-a11y-audit",
+  "description": "A Claude Code skill that audits React components for accessibility (WCAG 2.2 AA).",
+  "owner": {
+    "name": "petrecaLeo",
+    "url": "https://github.com/petrecaLeo"
+  },
+  "plugins": [
+    {
+      "name": "react-a11y-audit",
+      "source": "./",
+      "description": "Audits React components for accessibility against WCAG 2.2 AA and proposes the code fix for each issue."
+    }
+  ]
+}

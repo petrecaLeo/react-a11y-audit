@@ -1,0 +1,13 @@
+{
+  "name": "react-a11y-audit",
+  "version": "1.0.0",
+  "description": "Audits React components for accessibility against WCAG 2.2 AA and proposes the code fix for each issue.",
+  "author": {
+    "name": "petrecaLeo",
+    "url": "https://github.com/petrecaLeo"
+  },
+  "homepage": "https://github.com/petrecaLeo/react-a11y-audit",
+  "repository": "https://github.com/petrecaLeo/react-a11y-audit",
+  "license": "MIT",
+  "keywords": ["accessibility", "a11y", "wcag", "react", "nextjs", "aria", "skill"]
+}
