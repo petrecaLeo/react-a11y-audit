@@ -162,10 +162,23 @@ const ratio = (a, b) => {
   const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 };
+// Closest color that passes: moves fg toward black (light bg) or white (dark bg) in 1% steps,
+// so the hue stays close to the original design.
+const closest = (fg, bg, min = 4.5) => {
+  const rgb = fg.replace("#", "").match(/../g).map((h) => parseInt(h, 16));
+  const end = lum(bg) > 0.18 ? 0 : 255;
+  for (let t = 0; t <= 1.0001; t += 0.01) {
+    const hex = "#" + rgb.map((c) => Math.round(c + (end - c) * t).toString(16).padStart(2, "0")).join("");
+    if (ratio(hex, bg) >= min) return `${hex} (${ratio(hex, bg).toFixed(2)}:1)`;
+  }
+};
 console.log(ratio("#767676", "#ffffff").toFixed(2)); // 4.54
+console.log(closest("#777777", "#ffffff"));          // #767676 (4.54:1)
 ```
 
-Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
+Use `min = 3` for large text and UI parts. Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
+
+**Don't change the color on your own.** Contrast is often a design decision. Put the options under "Decisions for you" and ask: apply the closest color, keep it and flag it to design, or change the theme token (when the color comes from one, the fix belongs there, not in each component).
 
 ## 8. Target size, motion and media
 

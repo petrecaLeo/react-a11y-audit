@@ -9,5 +9,5 @@ The final answer reviews the NewsletterForm component. It passes when all of the
 3. It flags the error shown only by a red border (no text, not linked to the field).
 4. It flags the `div` used as the submit button.
 5. It flags the success message that is not announced (no live region, or a region created together with the message).
-6. No finding is about something that isn't accessibility (like how the e-mail is validated).
+6. No numbered finding is about something that isn't accessibility (like how the e-mail is validated). Sentences inside a fix that explain why the fix is needed are fine.
 7. It never says the form "is accessible", "is compliant" or "passes WCAG".

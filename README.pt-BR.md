@@ -30,24 +30,30 @@ export function ProductCard({ id, name, image, price, oldPrice, onFavorite }: Pr
 
 A skill responde com um relatório. Este trecho é de uma execução real com o Claude Sonnet 5.5 (em inglês, porque o pedido foi em inglês):
 
-> **3 critical, 3 serious, 2 moderate, 1 minor. 3 items to check in the browser.**
+> **2 critical, 2 serious, 2 moderate, 0 minor. 3 items to check in the browser.**
 >
-> **2. [Critical] Favorite control is a `span` with `onClick` and has no name**
-> **WCAG 2.2:** 2.1.1 Keyboard (A), 4.1.2 Name, Role, Value (A) · **Confirmed**
-> **Problem:** The control can't be focused or used with the keyboard. A screen reader has nothing to announce, because the only content is an icon.
+> **2. [Critical] The favorite control is not a button and has no name**
+> **WCAG 2.2:** 2.1.1 Keyboard (A), 4.1.2 Name, Role, Value (A)
+> **Problem:** The `span` with `onClick` can't be focused or activated by keyboard. The icon-only content also gives it no accessible name.
 > **Fix:**
 > ```tsx
-> <button type="button" className="favorite" onClick={() => onFavorite(id)} aria-label={`Add ${name} to favorites`}>
+> <button
+>   type="button"
+>   className="favorite"
+>   aria-label={`Add ${name} to favorites`}
+>   onClick={(e) => { e.stopPropagation(); onFavorite(id); }}
+> >
 >   <HeartIcon aria-hidden="true" />
 > </button>
 > ```
 >
-> **5. [Serious] Current price contrast is 3.30:1**
-> **WCAG 2.2:** 1.4.3 Contrast (Minimum) (AA) · **Confirmed**, assuming a white background
-> **Problem:** `#16a34a` on white is 3.30:1. At 14px it's normal-size text, so it needs 4.5:1.
-> **Fix:** Use `#15803d` (5.02:1 on white).
+> **Decisions for you**
+> - **Old price color** `#9ca3af` on `#ffffff` is 2.54:1. The closest color that passes is `#727780` (4.50:1). Should I apply it, keep it and flag it to design, or change it in the theme token?
+> - **Current price color** `#16a34a` on `#ffffff` is 3.30:1. The closest color that passes is `#12873d` (4.61:1). The same three options apply. Making the text 24px or larger (or 18.66px bold) would also drop the requirement to 3:1. I can't tell whether that suits the design.
+>
+> I can apply fixes 1, 2, 3, 5 and 6 to the file now, if you want. I'll leave the colors until you answer.
 
-Os outros itens: o `div` clicável (deveria ser um link), a imagem sem `alt`, o contraste do preço antigo (2,54:1), os preços que o leitor de tela lê como dois números soltos, o nome que não é um título e o tamanho do botão de favoritar. O relatório termina com o que conferir no navegador, porque o CSS do card não estava no código.
+Os outros itens: o `div` clicável (deveria ser um link), a imagem sem `alt`, os preços que o leitor de tela lê como dois números soltos e o nome que não é um título. O relatório também lista o que conferir no navegador, porque o CSS do card não estava no código.
 
 ## O que ela confere
 
@@ -67,6 +73,8 @@ Cada problema vem com a gravidade (crítico, sério, moderado, menor), o critér
 
 - **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado.
 - **Ela nunca diz que um componente "está acessível".** Revisão de código e ferramentas automáticas cobrem só parte do WCAG. Teste também com o teclado e com um leitor de tela.
+- **Ela não muda cor sozinha.** Cor muitas vezes é decisão de design, e quem programa não pode mudar sozinho. A skill calcula a razão e a cor mais próxima que passa, e pergunta: aplicar, manter e avisar o design, ou mudar o token do tema.
+- **Ela não chuta o escopo.** Se você não diz o que auditar, ela pergunta antes: os arquivos alterados na sua branch, um pull request, uma pasta ou componente, ou o repositório inteiro. Um componente e um repositório inteiro são trabalhos bem diferentes, em tempo e em tokens.
 - Ela combina com um scanner que roda na página: cole as violações do axe ou do Lighthouse, e ela acha e corrige cada uma no componente que a renderiza.
 
 ## Instalação
@@ -101,29 +109,35 @@ Também dá para chamar pelo nome: `/react-a11y-audit` (ou `/react-a11y-audit:re
 
 ## Testes
 
-Uma skill só ajuda se roda quando deve e fica quieta quando não deve. A pasta `evals/` tem 5 pedidos, rodados com `claude plugin eval`: 3 que devem ativar a skill e 2 pedidos de React que não devem, mesmo com problemas de acessibilidade no código. Só o pedido 2 é em português; os outros estão traduzidos na tabela.
+Uma skill só ajuda se roda quando deve e fica quieta quando não deve. A pasta `evals/` tem 6 pedidos, rodados com `claude plugin eval`: 4 que devem ativar a skill e 2 pedidos de React que não devem, mesmo com problemas de acessibilidade no código. Só o pedido 2 é em português; os outros estão traduzidos na tabela.
 
-| # | Pedido | Deve ativar | Ativou | Relatório |
+| # | Pedido | Deve ativar | Ativou | O que o teste confere |
 |---|---|---|---|---|
-| 1 | "Audit the accessibility of this component" (ProductCard) | sim | 2 de 2 | 2 de 2 aprovados |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (em português, sem a palavra "acessibilidade") | sim | 2 de 2 | 2 de 2 aprovados |
-| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 2 de 2 | 2 de 2 aprovados |
-| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 2 | – |
-| 5 | "Converte esse componente para TypeScript" | não | 0 de 2 | – |
+| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 17 de 17 | achou os problemas plantados, calculou o contraste, pergunta antes de mudar cor |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 16 de 16 | achou os problemas plantados, rótulos em português, nada fora do tema |
+| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 16 de 16 | corrigiu cada violação, manteve a cor até a pessoa decidir |
+| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 15 | – |
+| 5 | "Converte esse componente para TypeScript" | não | 0 de 15 | – |
+| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 9 de 9 | pergunta o que auditar antes de ler qualquer componente |
 
-Rodada final, Claude Sonnet 5.5, 2 execuções por pedido. Além de conferir se a skill foi chamada, um juiz (LLM) avalia cada relatório: se achou os problemas plantados, se cada correção funciona, se evitou dizer que o código "está acessível". Nos casos 1 e 3, um teste confere se o contraste foi calculado com o script.
+A skill disparou certo nas 88 execuções, em 10 rodadas com o Claude Sonnet 5.5. Um juiz (LLM) também avalia cada relatório, e nos casos 1 e 3 um teste confere se o contraste foi calculado com o script. A última versão rodou uma vez por caso (os casos 4 e 5 ficaram de fora, porque a descrição não mudou). Os relatórios dos casos 1, 3 e 6 passaram. O caso 2 reprovou num critério mais rígido que a regra que ele conferia; depois de corrigido o critério, o mesmo relatório passou numa nova avaliação feita à mão.
 
-A skill disparou certo desde a primeira rodada. Os relatórios precisaram de três ajustes:
+O que os testes pegaram no caminho:
 
 1. **Contraste estimado.** Uma resposta sugeriu uma cor "about 7.9:1" quando o valor era 7,81:1. Agora toda razão, inclusive das cores sugeridas, é calculada com o trecho de código do checklist.
-2. **Itens inventados e gravidade inflada.** Um "Critical" para um estado de favorito que o componente nem recebe, e uma regra de validação apontada como problema de acessibilidade. Agora a skill só aponta problemas do código que leu e parte da gravidade padrão do checklist.
-3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. O modelo do relatório agora pede para traduzir os rótulos, com os termos em português como exemplo.
+2. **Itens inventados e fora do tema.** Um "Critical" para um estado de favorito que o componente nem recebe, e uma regra de validação de e-mail apontada como problema de acessibilidade. Agora a skill só aponta problemas de acessibilidade que ela vê no código.
+3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. A correção foi uma lista dos termos em português acima do modelo, uma conferência antes de enviar e menos rótulos: os itens não têm mais a marca "Confirmado", porque o que não está confirmado vai para "Conferir no navegador".
+4. **Cor trocada sem perguntar** e **pedido vago auditado sem perguntar**, as duas de propósito na primeira versão. Viraram perguntas depois de feedback, e os casos 3 e 6 conferem isso.
+
+O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo (a skill ou o teste).
 
 Para rodar os testes:
 
 ```
-claude plugin eval . --runs 2 --ablation none --model sonnet --allow-tools "Bash(node:*)"
+claude plugin eval . --runs 2 --ablation none --model sonnet --judge-model sonnet --scaffold --allow-tools "Bash(node:*)" "Bash(git:*)"
 ```
+
+O `--scaffold` roda o `evals/6-vague-scope/scaffold.sh`, que cria um repositório pequeno para o caso 6.
 
 ## Como está organizada
 
@@ -131,7 +145,7 @@ claude plugin eval . --runs 2 --ablation none --model sonnet --allow-tools "Bash
 skills/react-a11y-audit/
 ├── SKILL.md                   regras, passo a passo e formato do relatório
 └── references/checklist.md    as checagens, com o critério do WCAG e código ruim/bom
-evals/                         os 5 pedidos de teste e seus graders
+evals/                         os 6 pedidos de teste e seus graders
 .claude-plugin/                manifestos do plugin e do marketplace
 ```
 

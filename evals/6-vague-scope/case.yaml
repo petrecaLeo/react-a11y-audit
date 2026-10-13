@@ -1,0 +1,30 @@
+schema_version: "1.0"
+name: 6-vague-scope
+description: A vague request in a repository with several components. The skill should ask what to audit before reading components.
+tags: [should-trigger, asks-scope]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: "Can you check the accessibility of my app?"
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill, Bash]
+runs: 2
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: react-a11y-audit
+    min: 1
+  - type: tool_used
+    name: no-component-read
+    tool: Read
+    input_match: "\\.tsx"
+    min: 0
+    max: 0
+  - type: llm
+    name: asks-scope
+    criteria: >-
+      The final answer asks the user what to audit before auditing anything.
+      It offers concrete options, such as the files changed on the current branch,
+      a pull request, a folder or component, or the whole repository.
+      It does not deliver an audit report or a list of accessibility findings.
