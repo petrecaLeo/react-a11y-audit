@@ -176,6 +176,14 @@ console.log(ratio("#767676", "#ffffff").toFixed(2)); // 4.54
 console.log(closest("#777777", "#ffffff"));          // #767676 (4.54:1)
 ```
 
+**Tailwind classes.** Turn them into colors first, with the script in this skill's `scripts/` folder:
+
+```
+node <this skill's directory>/scripts/tw-color.mjs --project <repository root> text-slate-500 bg-white bg-primary
+```
+
+It reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). Then compute the ratio with the snippet below. What it can't resolve (opacity like `/50`, CSS variables, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+
 Use `min = 3` for large text and UI parts. When the text is white or very light, the background is usually what should change: also run `closest(bg, fg)` and offer both. Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
 
 **Don't change the color on your own.** Contrast is often a design decision. Put the options under "Decisions for you" and ask: apply the closest color, keep it and flag it to design, or change the theme token (when the color comes from one, the fix belongs there, not in each component).

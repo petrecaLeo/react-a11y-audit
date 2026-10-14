@@ -1,0 +1,32 @@
+schema_version: "1.0"
+name: 9-tailwind-colors
+description: A Tailwind v4 component with a default color and a project color from @theme. The skill should turn the classes into real colors with its script and compute the contrast, not send them to "check in the browser".
+tags: [should-trigger, tailwind]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 10
+  allowed_tools: [Read, Glob, Grep, Skill, Bash]
+  prompt: "Check the accessibility of src/components/PlanCard.tsx"
+runs: 2
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: react-a11y-audit
+    min: 1
+  - type: tool_used
+    name: tailwind-script
+    tool: Bash
+    input_match: tw-color
+    min: 1
+  - type: llm
+    name: report
+    criteria: |
+      The final answer reviews PlanCard.tsx, a Tailwind v4 component. It passes when all of these hold:
+      1. It flags `text-gray-400` on `bg-white` as failing contrast, with the Tailwind v4 color `#99a1af` and a ratio of about 2.60:1 (within 0.1).
+      2. It flags the white text on `bg-brand-500` as failing contrast, with the project color `#0ea5e9` (from `@theme` in `src/app.css`) and a ratio of about 2.77:1 (within 0.1).
+      3. It doesn't change either color on its own: it offers a passing color with its ratio and asks.
+      4. It flags `focus:outline-none` on the button with no visible focus style in its place (2.4.7 Focus Visible).
+      5. Neither color problem is left only under "check in the browser" as an unknown color.
+      6. It never says the component "is accessible", "is compliant" or "passes WCAG".

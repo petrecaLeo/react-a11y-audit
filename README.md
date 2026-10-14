@@ -77,7 +77,7 @@ Five rules and 51 elements came down to three files in the project, plus a chat 
 - **Keyboard and focus:** removed outlines, `tabIndex`, hover-only menus, modals, custom widgets
 - **ARIA:** `aria-hidden` on focusable elements, missing or repeated ids, invalid values
 - **Dynamic content:** status messages, live regions, loading states, route changes
-- **Color:** text and UI contrast (computed with a script, never estimated), color as the only cue
+- **Color:** text and UI contrast (computed with a script, never estimated), color as the only cue. Tailwind classes are turned into real colors first, for v3 and v4, including the project's own colors from `@theme` or `tailwind.config.js`
 - **Target size, motion and media:** 24×24 px targets, drag-only actions, autoplay, captions
 - **Page level:** `lang`, page titles, skip links, blocked zoom
 
@@ -85,7 +85,7 @@ Each finding comes with a severity (critical, serious, moderate, minor), the WCA
 
 ## What it doesn't do
 
-- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component or runtime state goes to a "Check in the browser" list instead of being guessed.
+- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component or runtime state goes to a "Check in the browser" list instead of being guessed. The same goes for Tailwind colors the script can't resolve: opacity like `/50`, CSS variables and `tailwind.config.ts`.
 - **It never says a component "is accessible".** Code review and automated tools cover only part of WCAG. Test with the keyboard and a screen reader too.
 - **It doesn't change colors on its own.** A color is often a design decision the developer can't change alone. The skill computes the ratio and the closest color that passes, then asks: apply it, keep it and flag it to design, or change the theme token. If colors belong to the design team, it writes a short message you can paste to them.
 - **It doesn't guess the scope.** If you don't say what to audit, it asks first: the files changed on your branch, a pull request, a folder or component, or the whole repository. One component and a whole repository are very different jobs, in time and in tokens.
@@ -122,7 +122,7 @@ You can also call it by name: `/react-a11y-audit` (or `/react-a11y-audit:react-a
 
 ## Tests
 
-A skill only helps if it runs when it should, stays out of the way when it shouldn't, and does better than Claude without it. The `evals/` folder has 8 requests, run with `claude plugin eval` and Claude Sonnet 5.5.
+A skill only helps if it runs when it should, stays out of the way when it shouldn't, and does better than Claude without it. The `evals/` folder has 9 requests, run with `claude plugin eval` and Claude Sonnet 5.5.
 
 ### Does it trigger at the right time?
 
@@ -134,10 +134,11 @@ A skill only helps if it runs when it should, stays out of the way when it shoul
 | 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 17 |
 | 5 | "Convert this component to TypeScript" | no | 0 of 17 |
 | 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 11 of 11 |
-| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 4 of 4 |
+| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 8 of 8 |
 | 8 | "Revisa esse banner? As cores são do time de design" | yes | 4 of 4 |
+| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 2 of 2 |
 
-Right in all 112 runs. Cases 4 and 5 have accessibility problems in their code, so the skill had a reason to fire, and it didn't.
+Right in all 118 runs. Cases 4 and 5 have accessibility problems in their code, so the skill had a reason to fire, and it didn't.
 
 ### Is it better than Claude without it?
 
@@ -152,7 +153,7 @@ Each case ran twice with the skill and twice without it, with the same requests,
 | 7 | 2 of 2 | 0 of 2 | Both found the source of each problem. Without the skill, Claude proposed patching the chat vendor's iframe from the project's code. |
 | 8 | 1 of 2 | 0 of 2 | Without the skill, there was no message ready to send to the design team. |
 
-The "with" column is the last version (cases 3 and 6 from the round before its last small changes). Its two failures, in cases 1 and 8, passed when the same reports were graded again by hand: the judge isn't perfect either.
+The "with" column is the last version (cases 3 and 6 from the round before its last small changes). Case 9 came after this comparison, so it only ran with the skill: 2 of 2, with the script resolving both colors, including `#0ea5e9` from the project's `@theme`. Its two failures, in cases 1 and 8, passed when the same reports were graded again by hand: the judge isn't perfect either.
 
 Claude alone already finds most problems. What the skill adds is how it handles them: contrast computed instead of estimated, colors left to whoever decides them, the scope question, the map from scanner results to files, and the message for design.
 
@@ -163,7 +164,7 @@ Claude alone already finds most problems. What the skill adds is how it handles 
 3. **Half-translated labels.** Portuguese answers came with "Fix" and "Check in the browser" in English. The template now lists the Portuguese terms, the report is checked before sending, and the label became a phrase ("How to fix"), which gets translated more reliably than the single word.
 4. **Colors changed without asking** and **a vague request audited without asking**, both on purpose in the first version. They became questions after feedback, and cases 3 and 6 check them.
 5. **Patching a vendor's widget.** For the chat iframe, one answer offered a `MutationObserver` that edits the vendor's iframe. Now the skill points to the vendor's settings and says why a patch breaks.
-6. **Answering in the page's language.** In case 7 the request was in English, but 3 of 4 answers came in Portuguese, the language of the page. The rule now says to use the language of the user's own words. This last change hasn't been tested yet.
+6. **Answering in the page's language.** In case 7 the request was in English, but 3 of 4 answers came in Portuguese, the language of the page. A first rule ("the language of the user's own words") didn't help: 2 of 2 still in Portuguese. An explicit one, with the example "a request written in English gets an English report, even when the page is in Portuguese", did: 2 of 2 in English.
 
 The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test.
 
@@ -173,7 +174,7 @@ To run the tests:
 claude plugin eval . --runs 2 --ablation none --model sonnet --judge-model sonnet --scaffold --allow-tools "Bash(node:*)" "Bash(git:*)"
 ```
 
-`--scaffold` runs the `scaffold.sh` of cases 6 and 7, which create small repositories. Use `--ablation with-without` to also run every case without the skill.
+`--scaffold` runs the `scaffold.sh` of cases 6, 7 and 9, which create small repositories. Use `--ablation with-without` to also run every case without the skill.
 
 ## How it's organized
 
@@ -181,8 +182,9 @@ claude plugin eval . --runs 2 --ablation none --model sonnet --judge-model sonne
 skills/react-a11y-audit/
 ├── SKILL.md                   rules, workflow and report format
 ├── references/checklist.md    the checks, with WCAG criteria and bad/good code
-└── references/scanner-to-source.md   how to find the component behind each scanner result
-evals/                         the 8 test requests and their graders
+├── references/scanner-to-source.md   how to find the component behind each scanner result
+└── scripts/tw-color.mjs       turns Tailwind classes into colors (palettes in tw-colors.json)
+evals/                         the 9 test requests and their graders
 .claude-plugin/                plugin and marketplace manifests
 ```
 
@@ -190,4 +192,4 @@ Claude only sees the skill's name and description until a request matches. Then 
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The color palettes in `scripts/tw-colors.json` come from [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) (MIT License, Tailwind Labs).
