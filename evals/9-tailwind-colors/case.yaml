@@ -18,7 +18,7 @@ graders:
   - type: tool_used
     name: tailwind-script
     tool: Bash
-    input_match: tw-color
+    input_match: "contrast\\.mjs"
     min: 1
   - type: llm
     name: report

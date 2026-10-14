@@ -2,28 +2,15 @@
 // Turns Tailwind color classes into hex colors, so contrast can be computed instead of guessed.
 // Usage: node tw-color.mjs [--project <dir>] [--v3 | --v4] <class> [<class> ...]
 // Example: node tw-color.mjs --project . text-gray-400 bg-white hover:bg-brand-500/80
+// contrast.mjs imports the functions below to compute ratios.
 
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const here = path.dirname(new URL(import.meta.url).pathname);
+// fileURLToPath, not URL.pathname: the pathname keeps spaces and accents encoded (%20, %C3%81).
+const here = path.dirname(fileURLToPath(import.meta.url));
 const palettes = JSON.parse(fs.readFileSync(path.join(here, "tw-colors.json"), "utf8"));
-
-const args = process.argv.slice(2);
-let project = process.cwd();
-let version = null;
-const classes = [];
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--project") project = path.resolve(args[++i]);
-  else if (args[i] === "--v3") version = 3;
-  else if (args[i] === "--v4") version = 4;
-  else classes.push(args[i]);
-}
-if (classes.length === 0) {
-  console.log("Usage: node tw-color.mjs [--project <dir>] [--v3 | --v4] <class> [<class> ...]");
-  process.exit(1);
-}
 
 const SKIP_DIRS = new Set(["node_modules", ".git", ".next", "dist", "build", "out", "coverage"]);
 
@@ -35,7 +22,7 @@ function walk(dir, ext, found = []) {
   return found;
 }
 
-function detectVersion() {
+function detectVersion(project) {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(project, "package.json"), "utf8"));
     const range = { ...pkg.dependencies, ...pkg.devDependencies }.tailwindcss;
@@ -47,15 +34,34 @@ function detectVersion() {
   return null;
 }
 
-function toHex(value) {
-  value = value.trim();
-  if (/^#[0-9a-f]{3}$/i.test(value)) return "#" + [...value.slice(1)].map((c) => c + c).join("").toLowerCase();
-  if (/^#[0-9a-f]{6}$/i.test(value)) return value.toLowerCase();
+// The 16 basic CSS color names, plus orange and grey. Other names need a hex.
+const NAMED = {
+  black: "#000000", silver: "#c0c0c0", gray: "#808080", grey: "#808080", white: "#ffffff", maroon: "#800000",
+  red: "#ff0000", purple: "#800080", fuchsia: "#ff00ff", green: "#008000", lime: "#00ff00", olive: "#808000",
+  yellow: "#ffff00", navy: "#000080", blue: "#0000ff", teal: "#008080", aqua: "#00ffff", orange: "#ffa500",
+};
+
+// Colors with an alpha return null: their color depends on what is behind them.
+export function toHex(value) {
+  value = value.trim().toLowerCase();
+  if (NAMED[value]) return NAMED[value];
+  if (/^#[0-9a-f]{3}$/.test(value)) return "#" + [...value.slice(1)].map((c) => c + c).join("");
+  if (/^#[0-9a-f]{6}$/.test(value)) return value;
   const rgb = value.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*\)$/);
   if (rgb) return "#" + rgb.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
-  const ok = value.match(/^oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+|none)\s*\)$/);
-  if (ok) return oklchToHex(Number(ok[1]) / 100, Number(ok[2]), ok[3] === "none" ? 0 : Number(ok[3]));
+  const hsl = value.match(/^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%\s*\)$/);
+  if (hsl) return hslToHex(Number(hsl[1]), Number(hsl[2]) / 100, Number(hsl[3]) / 100);
+  // oklch(70.7% 0.022 261.3) as in Tailwind, or oklch(0.707 0.022 261.3) as in shadcn/ui.
+  const ok = value.match(/^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+|none)\s*\)$/);
+  if (ok) return oklchToHex(Number(ok[1]) / (ok[2] ? 100 : 1), Number(ok[3]), ok[4] === "none" ? 0 : Number(ok[4]));
   return null;
+}
+
+function hslToHex(h, s, l) {
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return "#" + [f(0), f(8), f(4)].map((c) => Math.round(c * 255).toString(16).padStart(2, "0")).join("");
 }
 
 // OKLCH to sRGB. Colors outside sRGB are clipped, so their ratios are close but not exact.
@@ -78,7 +84,7 @@ function oklchToHex(L, C, H) {
 }
 
 // v4: --color-* variables inside @theme blocks of the project's CSS files.
-function readV4Theme() {
+function readV4Theme(project) {
   const colors = {};
   let resetsDefaults = false;
   for (const file of walk(project, ".css")) {
@@ -94,7 +100,7 @@ function readV4Theme() {
 }
 
 // v3: theme.colors (replaces the defaults) and theme.extend.colors in tailwind.config.
-async function readV3Config() {
+async function readV3Config(project) {
   const colors = {};
   let resetsDefaults = false;
   const file = ["js", "cjs", "mjs"].map((e) => path.join(project, `tailwind.config.${e}`)).find(fs.existsSync);
@@ -122,6 +128,20 @@ async function readV3Config() {
   return { colors, resetsDefaults };
 }
 
+export async function loadTailwind(project = process.cwd(), version = null) {
+  const v = version ?? detectVersion(project);
+  const versions = v === 3 || v === 4 ? [v] : [3, 4];
+  const custom = {};
+  for (const ver of versions) custom[ver] = ver === 4 ? readV4Theme(project) : await readV3Config(project);
+  return { version: v, versions, custom };
+}
+
+export function twHeader(tw) {
+  const lines = [tw.version ? `Tailwind v${tw.version}` : "Tailwind version not found: showing v3 and v4 defaults"];
+  for (const ver of tw.versions) if (tw.custom[ver].note) lines.push(`Note: ${tw.custom[ver].note}`);
+  return lines;
+}
+
 const PREFIXES = ["ring-offset", "text", "bg", "border-x", "border-y", "border-t", "border-r", "border-b", "border-l", "border-s", "border-e",
   "border", "ring", "outline", "decoration", "divide", "placeholder", "caret", "accent", "fill", "stroke", "shadow", "from", "via", "to"];
 
@@ -140,37 +160,85 @@ function parse(cls) {
   return { variants: parts, prefix, color, opacity };
 }
 
-const v = version ?? detectVersion();
-const versionsToTry = v === 3 || v === 4 ? [v] : [3, 4];
-const custom = {};
-for (const ver of versionsToTry) custom[ver] = ver === 4 ? readV4Theme() : await readV3Config();
+// "/70" and "/[70%]" are 0.7, "/[.7]" is 0.7. Anything else (a variable) is null.
+function toAlpha(opacity) {
+  const n = opacity && opacity.match(/^\[?([\d.]+)(%?)\]?$/);
+  if (!n) return null;
+  return n[2] || !opacity.startsWith("[") ? Number(n[1]) / 100 : Number(n[1]);
+}
 
-console.log(v ? `Tailwind v${v}` : "Tailwind version not found: showing v3 and v4 defaults");
-for (const ver of versionsToTry) if (custom[ver].note) console.log(`Note: ${custom[ver].note}`);
+const opacityLabel = (opacity) => `${opacity.replace(/[[\]]/g, "")}${/^\d+$/.test(opacity) ? "%" : ""}`;
 
-for (const cls of classes) {
+// One entry in `found` per Tailwind version tried (ver is null for arbitrary values).
+export function resolveClass(cls, tw) {
   const p = parse(cls);
-  if (!p) { console.log(`${cls}  not a color utility`); continue; }
-  const where = p.variants.length ? ` (only with ${p.variants.join(":")}:)` : "";
-  const alpha = p.opacity ? ` at ${p.opacity.replace(/[[\]]/g, "")}${/^\d+$/.test(p.opacity) ? "%" : ""} opacity: blend it with the background before computing contrast, or check in the browser` : "";
-  if (/^\[\d/.test(p.color) && !/^\[#/.test(p.color)) { console.log(`${cls}  not a color utility`); continue; }
+  if (!p || (/^\[\d/.test(p.color) && !/^\[#/.test(p.color))) return { cls, problem: "not a color utility" };
+  const r = { cls, prefix: p.prefix, color: p.color, variants: p.variants, opacity: p.opacity, alpha: toAlpha(p.opacity), found: [] };
   if (p.color.startsWith("[")) {
     const hex = toHex(p.color.slice(1, -1).replace(/_/g, " "));
-    console.log(`${cls}  ${hex ?? "?"}  ${hex ? "arbitrary value" : "arbitrary value this script can't resolve: check in the browser"}${alpha}${where}`);
-    continue;
+    r.found.push({ ver: null, hex, note: hex ? "arbitrary value" : "arbitrary value this script can't resolve: check in the browser" });
+    return r;
   }
-  if (NOT_COLOR.test(p.color)) { console.log(`${cls}  not a color utility`); continue; }
-  if (["transparent", "current", "inherit"].includes(p.color)) { console.log(`${cls}  ${p.color}: depends on the parent, check in the browser`); continue; }
-  for (const ver of versionsToTry) {
-    const label = versionsToTry.length > 1 ? ` [v${ver}]` : "";
-    const own = custom[ver].colors[p.color];
+  if (NOT_COLOR.test(p.color)) return { cls, problem: "not a color utility" };
+  if (["transparent", "current", "inherit"].includes(p.color)) return { cls, problem: `${p.color}: depends on the parent, check in the browser` };
+  for (const ver of tw.versions) {
+    const own = tw.custom[ver].colors[p.color];
     if (own) {
-      console.log(`${cls}${label}  ${own.hex ?? "?"}  ${own.hex ? `project color, ${own.from}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser`}${alpha}${where}`);
-    } else if (!custom[ver].resetsDefaults && palettes[`v${ver}`][p.color]) {
+      r.found.push({ ver, hex: own.hex, note: own.hex ? `project color, ${own.from}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser` });
+    } else if (!tw.custom[ver].resetsDefaults && palettes[`v${ver}`][p.color]) {
       const clipped = ver === 4 && palettes.v4_clipped.includes(p.color) ? ", outside sRGB, so the ratio is close but not exact" : "";
-      console.log(`${cls}${label}  ${palettes[`v${ver}`][p.color]}  Tailwind v${ver} default${clipped}${alpha}${where}`);
+      r.found.push({ ver, hex: palettes[`v${ver}`][p.color], note: `Tailwind v${ver} default${clipped}` });
     } else {
-      console.log(`${cls}${label}  ?  not found in the defaults or in the project's colors: check in the browser`);
+      r.found.push({ ver, hex: null, note: "not found in the defaults or in the project's colors: check in the browser", missing: true });
+    }
+  }
+  return r;
+}
+
+// The other shades of a color's family (gray-400 → gray-50 … gray-950), from the defaults and the project.
+export function shades(color, ver, tw) {
+  const family = color.match(/^(.+)-\d+$/)?.[1];
+  if (!family) return [];
+  const found = {};
+  const defaults = tw.custom[ver].resetsDefaults ? {} : palettes[`v${ver}`];
+  for (const [name, hex] of Object.entries(defaults)) if (name.match(/^(.+)-\d+$/)?.[1] === family) found[name] = hex;
+  for (const [name, own] of Object.entries(tw.custom[ver].colors)) if (own.hex && name.match(/^(.+)-\d+$/)?.[1] === family) found[name] = own.hex;
+  delete found[color];
+  return Object.entries(found).map(([name, hex]) => ({ name, hex }));
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  let project = process.cwd();
+  let version = null;
+  const classes = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--project") project = path.resolve(args[++i]);
+    else if (args[i] === "--v3") version = 3;
+    else if (args[i] === "--v4") version = 4;
+    else classes.push(args[i]);
+  }
+  if (classes.length === 0) {
+    console.log("Usage: node tw-color.mjs [--project <dir>] [--v3 | --v4] <class> [<class> ...]");
+    process.exit(1);
+  }
+
+  const tw = await loadTailwind(project, version);
+  for (const line of twHeader(tw)) console.log(line);
+
+  for (const cls of classes) {
+    const r = resolveClass(cls, tw);
+    if (r.problem) { console.log(`${cls}  ${r.problem}`); continue; }
+    const where = r.variants.length ? ` (only with ${r.variants.join(":")}:)` : "";
+    const alpha = r.opacity ? ` at ${opacityLabel(r.opacity)} opacity: blend it with the background before computing contrast, or check in the browser` : "";
+    for (const f of r.found) {
+      const label = f.ver && tw.versions.length > 1 ? ` [v${f.ver}]` : "";
+      console.log(`${cls}${label}  ${f.hex ?? "?"}  ${f.note}${f.missing ? "" : alpha + where}`);
     }
   }
 }
+
+const isMain = (() => {
+  try { return fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url)); } catch { return false; }
+})();
+if (isMain) await main();

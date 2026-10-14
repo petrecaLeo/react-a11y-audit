@@ -147,44 +147,19 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 - **Exempt:** disabled controls, logos and pure decoration.
 - **Color as the only cue.** Status shown only by a red or green dot, or links in a paragraph that differ only by color. Add text, an icon or an underline. 1.4.1 Use of Color (A). Serious.
 
-**How to compute.** Only with two known colors (hex or rgb in the code, or in a theme file you read). Run this instead of estimating:
-
-```js
-// node -e "<paste>"  or the browser console. 6-digit hex.
-const lum = (hex) => {
-  const [r, g, b] = hex.replace("#", "").match(/../g).map((h) => {
-    const c = parseInt(h, 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-const ratio = (a, b) => {
-  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-};
-// Closest color that passes: moves fg toward black (light bg) or white (dark bg) in 1% steps,
-// so the hue stays close to the original design.
-const closest = (fg, bg, min = 4.5) => {
-  const rgb = fg.replace("#", "").match(/../g).map((h) => parseInt(h, 16));
-  const end = lum(bg) > 0.18 ? 0 : 255;
-  for (let t = 0; t <= 1.0001; t += 0.01) {
-    const hex = "#" + rgb.map((c) => Math.round(c + (end - c) * t).toString(16).padStart(2, "0")).join("");
-    if (ratio(hex, bg) >= min) return `${hex} (${ratio(hex, bg).toFixed(2)}:1)`;
-  }
-};
-console.log(ratio("#767676", "#ffffff").toFixed(2)); // 4.54
-console.log(closest("#777777", "#ffffff"));          // #767676 (4.54:1)
-```
-
-**Tailwind classes.** Turn them into colors first, with the script in this skill's `scripts/` folder:
+**How to compute.** Only with two known colors: a hex or rgb in the code, a color in a theme file you read, or a Tailwind class. Run the script in this skill's `scripts/` folder instead of estimating. It takes pairs, the foreground (text, border, icon) first and then the background:
 
 ```
-node <this skill's directory>/scripts/tw-color.mjs --project <repository root> text-slate-500 bg-white bg-primary
+node <this skill's directory>/scripts/contrast.mjs --project <repository root> text-gray-400 bg-white text-white "#0ea5e9"
 ```
 
-It reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). Then compute the ratio with the snippet below. What it can't resolve (opacity like `/50`, CSS variables, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+Run it as a command of its own, starting with `node` and the script's full path: no `cd`, no variables, nothing before it with `;` or `&&`. Some setups only allow commands that start with `node` and block the rest. Quote values with spaces or parentheses (`"rgb(0, 0, 0)"`). Each color can be a hex, `rgb()`, `hsl()`, `oklch()`, a basic name (`white`) or a Tailwind class. Put all the pairs of a component in one command.
 
-Use `min = 3` for large text and UI parts. When the text is white or very light, the background is usually what should change: also run `closest(bg, fg)` and offer both. Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
+For each pair, it prints the ratio, whether it passes 4.5:1 and 3:1, and what passes: a shade from the same palette when there is one (`text-gray-500`), and the closest new color. Use `--min 3` for large text and UI parts. When the foreground is lighter than the background (white text on a button), the background is usually what should change, so the script suggests it first. Offer the palette shade first: the project already has it, so it's an easy change to accept.
+
+**Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It blends text opacity like `text-white/70` with the background. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. What it can't resolve (CSS variables, a background with opacity, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+
+Gradients and text over images also go to "Check in the browser".
 
 **Don't change the color on your own.** Contrast is often a design decision. Put the options under "Decisions for you" and ask: apply the closest color, keep it and flag it to design, or change the theme token (when the color comes from one, the fix belongs there, not in each component).
 
