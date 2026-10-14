@@ -83,8 +83,37 @@ function oklchToHex(L, C, H) {
   }).join("");
 }
 
+// Custom properties in :root and .dark blocks. shadcn/ui keeps its colors there, as oklch() or bare hsl numbers.
+function readCssVars(project) {
+  const vars = { light: {}, dark: {} };
+  for (const file of walk(project, ".css")) {
+    for (const [, selector, body] of fs.readFileSync(file, "utf8").matchAll(/(:root|\.dark)\s*\{([^}]*)\}/g)) {
+      for (const [, name, value] of body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) vars[selector === ":root" ? "light" : "dark"][name] = value.trim();
+    }
+  }
+  return vars;
+}
+
+function substitute(value, vars, mode, depth = 0) {
+  return value.replace(/var\(\s*--([\w-]+)\s*(?:,\s*([^)]+))?\)/g, (match, name, fallback) => {
+    const found = vars[mode][name] ?? vars.light[name] ?? fallback?.trim();
+    if (found === undefined) return match;
+    return depth < 5 ? substitute(found, vars, mode, depth + 1) : found;
+  });
+}
+
+// A color from the project, following var(--x) to :root (light) and .dark. v3 configs often write hsl(var(--x) / <alpha-value>).
+function projectColor(raw, vars, from) {
+  raw = raw.trim();
+  const read = (mode) => toHex(substitute(raw, vars, mode).replace(/\s*\/\s*<alpha-value>/, ""));
+  const light = read("light");
+  const dark = read("dark");
+  const via = raw.match(/var\(\s*--([\w-]+)/)?.[1] ?? null;
+  return { hex: light, dark: dark && dark !== light ? dark : null, raw, from, via };
+}
+
 // v4: --color-* variables inside @theme blocks of the project's CSS files.
-function readV4Theme(project) {
+function readV4Theme(project, vars) {
   const colors = {};
   let resetsDefaults = false;
   for (const file of walk(project, ".css")) {
@@ -92,7 +121,7 @@ function readV4Theme(project) {
     for (const block of css.matchAll(/@theme[^{]*\{([^}]*)\}/g)) {
       if (/--color-\*\s*:\s*initial/.test(block[1])) resetsDefaults = true;
       for (const [, name, value] of block[1].matchAll(/--color-([\w-]+)\s*:\s*([^;]+);/g)) {
-        colors[name] = { hex: toHex(value), raw: value.trim(), from: path.relative(project, file) };
+        colors[name] = projectColor(value, vars, path.relative(project, file));
       }
     }
   }
@@ -100,7 +129,7 @@ function readV4Theme(project) {
 }
 
 // v3: theme.colors (replaces the defaults) and theme.extend.colors in tailwind.config.
-async function readV3Config(project) {
+async function readV3Config(project, vars) {
   const colors = {};
   let resetsDefaults = false;
   const file = ["js", "cjs", "mjs"].map((e) => path.join(project, `tailwind.config.${e}`)).find(fs.existsSync);
@@ -118,7 +147,7 @@ async function readV3Config(project) {
   const flatten = (obj, prefix, from) => {
     for (const [key, value] of Object.entries(obj ?? {})) {
       const name = key === "DEFAULT" ? prefix : prefix ? `${prefix}-${key}` : key;
-      if (typeof value === "string") colors[name] = { hex: toHex(value), raw: value, from };
+      if (typeof value === "string") colors[name] = projectColor(value, vars, from);
       else if (value && typeof value === "object") flatten(value, name, from);
     }
   };
@@ -131,9 +160,10 @@ async function readV3Config(project) {
 export async function loadTailwind(project = process.cwd(), version = null) {
   const v = version ?? detectVersion(project);
   const versions = v === 3 || v === 4 ? [v] : [3, 4];
+  const vars = readCssVars(project);
   const custom = {};
-  for (const ver of versions) custom[ver] = ver === 4 ? readV4Theme(project) : await readV3Config(project);
-  return { version: v, versions, custom };
+  for (const ver of versions) custom[ver] = ver === 4 ? readV4Theme(project, vars) : await readV3Config(project, vars);
+  return { version: v, versions, custom, vars };
 }
 
 export function twHeader(tw) {
@@ -175,8 +205,8 @@ export function resolveClass(cls, tw) {
   if (!p || (/^\[\d/.test(p.color) && !/^\[#/.test(p.color))) return { cls, problem: "not a color utility" };
   const r = { cls, prefix: p.prefix, color: p.color, variants: p.variants, opacity: p.opacity, alpha: toAlpha(p.opacity), found: [] };
   if (p.color.startsWith("[")) {
-    const hex = toHex(p.color.slice(1, -1).replace(/_/g, " "));
-    r.found.push({ ver: null, hex, note: hex ? "arbitrary value" : "arbitrary value this script can't resolve: check in the browser" });
+    const { hex, dark, via } = projectColor(p.color.slice(1, -1).replace(/_/g, " "), tw.vars, null);
+    r.found.push({ ver: null, hex, dark, note: hex ? `arbitrary value${via ? `, --${via} in :root` : ""}` : "arbitrary value this script can't resolve: check in the browser" });
     return r;
   }
   if (NOT_COLOR.test(p.color)) return { cls, problem: "not a color utility" };
@@ -184,7 +214,7 @@ export function resolveClass(cls, tw) {
   for (const ver of tw.versions) {
     const own = tw.custom[ver].colors[p.color];
     if (own) {
-      r.found.push({ ver, hex: own.hex, note: own.hex ? `project color, ${own.from}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser` });
+      r.found.push({ ver, hex: own.hex, dark: own.dark, note: own.hex ? `project color, ${own.from}${own.via ? `, --${own.via} in :root` : ""}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser` });
     } else if (!tw.custom[ver].resetsDefaults && palettes[`v${ver}`][p.color]) {
       const clipped = ver === 4 && palettes.v4_clipped.includes(p.color) ? ", outside sRGB, so the ratio is close but not exact" : "";
       r.found.push({ ver, hex: palettes[`v${ver}`][p.color], note: `Tailwind v${ver} default${clipped}` });
@@ -233,7 +263,8 @@ async function main() {
     const alpha = r.opacity ? ` at ${opacityLabel(r.opacity)} opacity: blend it with the background before computing contrast, or check in the browser` : "";
     for (const f of r.found) {
       const label = f.ver && tw.versions.length > 1 ? ` [v${f.ver}]` : "";
-      console.log(`${cls}${label}  ${f.hex ?? "?"}  ${f.note}${f.missing ? "" : alpha + where}`);
+      const dark = f.dark ? ` (${f.dark} in .dark)` : "";
+      console.log(`${cls}${label}  ${f.hex ?? "?"}  ${f.note}${dark}${f.missing ? "" : alpha + where}`);
     }
   }
 }

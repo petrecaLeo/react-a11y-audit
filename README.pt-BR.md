@@ -77,7 +77,7 @@ Cinco regras e 51 elementos se resumiram a três arquivos do projeto, mais um wi
 - **Teclado e foco:** outline removido, `tabIndex`, menu que só abre com o mouse, modais, widgets próprios
 - **ARIA:** `aria-hidden` em elemento focável, ids que faltam ou se repetem, valores inválidos
 - **Conteúdo dinâmico:** mensagens de status, live regions, carregamento, troca de rota
-- **Cor:** contraste de texto e de interface (calculado com um script, nunca estimado), cor como único sinal. As classes do Tailwind viram cores de verdade antes, na v3 e na v4, inclusive as cores próprias do projeto no `@theme` ou no `tailwind.config.js`
+- **Cor:** contraste de texto e de interface (calculado com um script, nunca estimado), cor como único sinal. As classes do Tailwind viram cores de verdade antes, na v3 e na v4, inclusive as cores próprias do projeto no `@theme` ou no `tailwind.config.js` e as variáveis de CSS em `:root` e `.dark` (como no shadcn/ui), com um resultado para cada modo. Para corrigir, ela oferece um tom que o projeto já tem antes de um hex novo
 - **Tamanho de alvo, movimento e mídia:** alvos de 24×24 px, ação só com arrastar, autoplay, legendas
 - **Página:** `lang`, título da página, link para pular ao conteúdo, zoom bloqueado
 
@@ -85,7 +85,8 @@ Cada problema vem com a gravidade (crítico, sério, moderado, menor), o critér
 
 ## O que ela não faz
 
-- **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado. O mesmo vale para as cores do Tailwind que o script não resolve: variáveis de CSS, fundo com transparência e `tailwind.config.ts`.
+- **Ela é para a web.** React Native fica de fora: as checagens são de HTML, ARIA e navegador.
+- **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado. O mesmo vale para as cores do Tailwind que o script não resolve: variáveis de CSS fora de `:root` e `.dark`, fundo com transparência e `tailwind.config.ts`.
 - **Ela nunca diz que um componente "está acessível".** Revisão de código e ferramentas automáticas cobrem só parte do WCAG. Teste também com o teclado e com um leitor de tela.
 - **Ela não muda cor sozinha.** Cor muitas vezes é decisão de design, e quem programa não pode mudar sozinho. A skill calcula a razão e uma cor que passa, de preferência um tom que o projeto já tem (`text-gray-500` em vez de um hex novo), e pergunta: aplicar, manter e avisar o design, ou mudar o token do tema. Se as cores são do time de design, ela escreve um recado curto para você mandar para eles.
 - **Ela não chuta o escopo.** Se você não diz o que auditar, ela pergunta antes: os arquivos alterados na sua branch, um pull request, uma pasta ou componente, ou o repositório inteiro. Um componente e um repositório inteiro são trabalhos bem diferentes, em tempo e em tokens.
@@ -122,23 +123,27 @@ Também dá para chamar pelo nome: `/react-a11y-audit` (ou `/react-a11y-audit:re
 
 ## Testes
 
-Uma skill só ajuda se roda quando deve, fica quieta quando não deve e se sai melhor que o Claude sem ela. A pasta `evals/` tem 9 pedidos, rodados com `claude plugin eval` e o Claude Sonnet 5.5. Os pedidos 2 e 8 são em português; os outros estão traduzidos nas tabelas.
+Uma skill só ajuda se roda quando deve, fica quieta quando não deve e se sai melhor que o Claude sem ela. A pasta `evals/` tem 13 pedidos, rodados com `claude plugin eval` e o Claude Sonnet 5.5. Os pedidos 2 e 8 são em português; os outros estão traduzidos nas tabelas.
 
 ### Ela dispara na hora certa?
 
 | # | Pedido | Deve ativar | Ativou |
 |---|---|---|---|
-| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 25 de 25 |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 25 de 25 |
-| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 22 de 22 |
-| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 19 |
-| 5 | "Converte esse componente para TypeScript" | não | 1 de 25 |
-| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 13 de 13 |
-| 7 | Resultado do axe de uma página: "de onde vem cada problema no nosso código?" | sim | 13 de 13 |
-| 8 | "Revisa esse banner? As cores são do time de design" | sim | 11 de 11 |
-| 9 | "Confere a acessibilidade de src/components/PlanCard.tsx" (Tailwind v4, com uma cor do projeto) | sim | 12 de 12 |
+| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 27 de 27 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 29 de 29 |
+| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 27 de 27 |
+| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 21 |
+| 5 | "Converte esse componente para TypeScript" | não | 1 de 27 |
+| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 15 de 15 |
+| 7 | Resultado do axe de uma página: "de onde vem cada problema no nosso código?" | sim | 23 de 23 |
+| 8 | "Revisa esse banner? As cores são do time de design" | sim | 15 de 15 |
+| 9 | "Confere a acessibilidade de src/components/PlanCard.tsx" (Tailwind v4, com uma cor do projeto) | sim | 14 de 14 |
+| 10 | "Confere a acessibilidade de src/components/DeleteAccount.tsx" (dialog do shadcn/ui, uma cor que só falha no modo escuro) | sim | 10 de 10 |
+| 11 | "Confere a acessibilidade desse componente React Native?" | não | 0 de 2 |
+| 12 | "Meu campo de busca perde o foco a cada letra que digito. Por quê?" | não | 0 de 2 |
+| 13 | "Audita a acessibilidade desse formulário" (um formulário sem problema real) | sim | 2 de 2 |
 
-Certo em 164 de 165 execuções. Os casos 4 e 5 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar. No caso 4 ela ficou quieta todas as vezes, e no caso 5 disparou uma vez em 25.
+Certo em 213 de 214 execuções. Os casos 4, 5 e 12 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e o caso 12 ainda tem a palavra "foco". Ela ficou quieta todas as vezes, menos uma nas 27 execuções do caso 5.
 
 ### Ela é melhor que o Claude sem ela?
 
@@ -154,7 +159,7 @@ Cada caso rodou com e sem a skill (duas vezes cada, o caso 9 quatro vezes), com 
 | 8 | 1 de 2 | 0 de 2 | Sem a skill, não veio um recado pronto para o time de design. |
 | 9 | 4 de 4 | 0 de 4 | Sem a skill, o Claude usou as cores do Tailwind v3 (`#9ca3af`) num projeto v4 e estimou as razões ("about 2.5:1"). Uma resposta não achou a cor do projeto no `@theme`. |
 
-Os casos 1 a 8 são da última comparação completa. O caso 9 é da rodada depois da mudança no script (antes dela, 1 de 2: veja o item 7 abaixo). As falhas nos casos 1, 2 e 8 passaram quando os mesmos relatórios foram avaliados de novo, pedindo ao juiz o motivo de cada item: o juiz também erra. Depois da mudança, os casos 1, 3 e 8 rodaram mais duas vezes: os 6 relatórios passaram, 2 deles só nessa segunda avaliação.
+Os casos 1 a 8 são da última comparação completa. O caso 9 é da rodada depois da mudança no script (antes dela, 1 de 2: veja o item 7 abaixo). As falhas nos casos 1, 2 e 8 passaram quando os mesmos relatórios foram avaliados de novo, pedindo ao juiz o motivo de cada item: o juiz também erra. Depois da mudança, os casos 1, 3 e 8 rodaram mais duas vezes: os 6 relatórios passaram, 2 deles só nessa segunda avaliação. Os casos 10 a 13 vieram depois e só rodaram com a skill: o caso 10 passou em 3 de 3 depois das mudanças do item 8 abaixo, e o caso 13 não inventou problema em 2 de 2. Depois, os casos 1 a 9 rodaram mais duas vezes com todas as mudanças: o juiz reprovou 4 relatórios, 3 passaram na segunda avaliação, e o do caso 3 levou ao item 9 abaixo.
 
 O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta é o jeito de lidar com eles: contraste calculado em vez de estimado, cor deixada para quem decide, a pergunta de escopo, o mapa do resultado do scanner até os arquivos e o recado para o design.
 
@@ -165,8 +170,10 @@ O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta 
 3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. O modelo do relatório agora lista os termos em português, o relatório é conferido antes de enviar, e o rótulo virou uma frase ("How to fix"), que o modelo traduz com mais confiança do que a palavra solta.
 4. **Cor trocada sem perguntar** e **pedido vago auditado sem perguntar**, as duas de propósito na primeira versão. Viraram perguntas depois de feedback, e os casos 3 e 6 conferem isso.
 5. **Remendo no widget do fornecedor.** Para o iframe do chat, uma resposta ofereceu um `MutationObserver` que mexe no iframe do fornecedor. Agora a skill aponta para a configuração do fornecedor e explica por que um remendo quebra.
-6. **Resposta na língua da página.** No caso 7, o pedido foi em inglês, mas 3 de 4 respostas vieram em português, a língua da página. Uma primeira regra ("a língua das palavras de quem pediu") não resolveu: 2 de 2 ainda em português. Uma regra explícita, com o exemplo "pedido em inglês recebe relatório em inglês, mesmo com a página em português", resolveu: 2 de 2 em inglês. Nas rodadas seguintes, 4 de 5 vieram em inglês: a regra ajuda, mas não é perfeita.
+6. **Resposta na língua da página.** No caso 7, o pedido foi em inglês, mas 3 de 4 respostas vieram em português, a língua da página. Uma primeira regra ("a língua das palavras de quem pediu") não resolveu: 2 de 2 ainda em português. Uma regra explícita, com o exemplo "pedido em inglês recebe relatório em inglês, mesmo com a página em português", resolveu: 2 de 2 em inglês. Nas rodadas seguintes, 7 de 9 vieram em inglês. Pedir ao Claude para anotar o idioma do pedido logo no primeiro passo, antes de ler qualquer arquivo, levou a 6 de 6.
 7. **Script bloqueado, cor chutada.** No caso 9, 3 de 8 respostas montaram o comando com algo antes do `node` (`ls; …` ou uma variável). Os testes só liberam comandos que começam com `node`, então o comando foi bloqueado, e o Claude usou de memória as cores do Tailwind v3 num projeto v4. Muita gente também só libera o `node` no dia a dia. Agora um script só, o `contrast.mjs`, recebe as classes e devolve a razão, e a skill pede para rodá-lo como um comando separado, começando com `node`: 4 de 4 depois da mudança.
+8. **Cor de dentro do wrapper esquecida.** No caso 10, a cor da descrição vem de `components/ui/dialog.tsx`. O Claude leu esse arquivo, mas calculou só as cores escritas no `DeleteAccount.tsx`, e perdeu a falha do modo escuro em 2 de 2. Com uma regra para incluir as cores dos wrappers, 1 de 2 ainda deixou o par em "Conferir no navegador" sem calcular. Uma última conferência antes de enviar (par de cores que ficou lá passa pelo script antes) levou a 3 de 3.
+9. **Uma nota sobre o scanner que escondeu um achado.** Uma linha nova dizia para ler só as falhas do scanner, e uma resposta no caso 3 chamou de "opcional" o nome que falta no link do carrinho, porque o Lighthouse não apontou. A linha agora diz que um problema visto no código continua sendo achado: 3 de 3.
 
 O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo: a skill ou o teste.
 
@@ -176,7 +183,7 @@ Para rodar os testes:
 claude plugin eval . --runs 2 --ablation none --model sonnet --judge-model sonnet --scaffold --allow-tools "Bash(node:*)" "Bash(git:*)"
 ```
 
-O `--scaffold` roda o `scaffold.sh` dos casos 6, 7 e 9, que criam repositórios pequenos. Use `--ablation with-without` para rodar também cada caso sem a skill.
+O `--scaffold` roda o `scaffold.sh` dos casos 6, 7, 9 e 10, que criam repositórios pequenos. Use `--ablation with-without` para rodar também cada caso sem a skill.
 
 ## Como está organizada
 
@@ -187,7 +194,7 @@ skills/react-a11y-audit/
 ├── references/scanner-to-source.md   como achar o componente de cada resultado do scanner
 ├── scripts/contrast.mjs       calcula o contraste e as cores mais próximas que passam
 └── scripts/tw-color.mjs       transforma classes do Tailwind em cores (paletas em tw-colors.json)
-evals/                         os 9 pedidos de teste e seus graders
+evals/                         os 13 pedidos de teste e seus graders
 .claude-plugin/                manifestos do plugin e do marketplace
 ```
 

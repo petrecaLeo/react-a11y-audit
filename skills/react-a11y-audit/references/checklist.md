@@ -92,6 +92,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 
 - **`tabIndex` greater than 0.** It breaks the natural Tab order. Remove it and fix the DOM order. 2.4.3 Focus Order (A). Serious.
 - **Focus outline removed** (`outline: none`, `outline-none`, `focus:outline-none`) with no `focus-visible` style in its place. 2.4.7 Focus Visible (AA). Serious. If the focus style may come from global CSS you can't see, mark it "Check in the browser".
+- **Focus shown only with `ring` in Tailwind v4.** A `ring` is a `box-shadow`, and Windows high contrast mode (forced colors) removes it. In v4, `outline-none` removes the outline for real (v3's `outline-none`, a transparent outline that forced colors still shows, is now `outline-hidden`). So `focus-visible:outline-none focus-visible:ring-2` leaves no focus in that mode. Use `outline-hidden` with the ring, or an `outline` style. 2.4.7 (AA). Moderate.
 - **Focus ring with low contrast.** It needs 3:1 against the colors next to it. 1.4.11 Non-text Contrast (AA). Serious.
 - **Sticky header, footer or cookie banner** that can cover the focused element. Check in the browser. The usual fix is `scroll-padding-top` on `html`. 2.4.11 Focus Not Obscured (Minimum) (AA). Moderate.
 - **Opens only on hover** (`onMouseEnter` with no keyboard path). Menus and tooltips must open on focus too. Tooltip content must close with Escape and stay open while the pointer is over it. 2.1.1 (A), 1.4.13 Content on Hover or Focus (AA). Serious.
@@ -114,6 +115,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
   ```
 
 - **Custom widgets** (tabs, dropdown, combobox, accordion, menu). Follow the keyboard model of the ARIA Authoring Practices Guide (APG) and keep the states in sync: `aria-expanded`, `aria-selected`, `aria-controls`. A tested headless library is often safer than a hand-made widget. 2.1.1 (A), 4.1.2 (A). Serious.
+- **Local copies of a headless library**, like shadcn/ui in `components/ui/` (it wraps Radix). The library already moves and traps focus, closes on Escape and sets the roles: don't report those. Check what it can't do for you: the props passed. A Radix `DialogContent` needs a `DialogTitle` (hide it with `VisuallyHidden` if there's no visible title), and icon buttons still need an `aria-label`. 4.1.2 (A). Serious.
 - **`autoFocus` on page load.** It skips the content before the field for screen reader users. Fine inside a dialog. Minor.
 
 ## 5. ARIA
@@ -153,11 +155,11 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 node <this skill's directory>/scripts/contrast.mjs --project <repository root> text-gray-400 bg-white text-white "#0ea5e9"
 ```
 
-Run it as a command of its own, starting with `node` and the script's full path: no `cd`, no variables, nothing before it with `;` or `&&`. Some setups only allow commands that start with `node` and block the rest. Quote values with spaces or parentheses (`"rgb(0, 0, 0)"`). Each color can be a hex, `rgb()`, `hsl()`, `oklch()`, a basic name (`white`) or a Tailwind class. Put all the pairs of a component in one command.
+Run it as a command of its own, starting with `node` and the script's full path: no `cd`, no variables, nothing before it with `;` or `&&`. Some setups only allow commands that start with `node` and block the rest. Quote values with spaces or parentheses (`"rgb(0, 0, 0)"`). Each color can be a hex, `rgb()`, `hsl()`, `oklch()`, a basic name (`white`) or a Tailwind class. Put all the pairs of a component in one command. List every text with its background, including colors set inside the local wrappers you read: a `CardDescription` from `components/ui/card.tsx` brings its own text color, and its background is the nearest parent with a `bg-` class, which may be in another wrapper.
 
 For each pair, it prints the ratio, whether it passes 4.5:1 and 3:1, and what passes: a shade from the same palette when there is one (`text-gray-500`), and the closest new color. Use `--min 3` for large text and UI parts. When the foreground is lighter than the background (white text on a button), the background is usually what should change, so the script suggests it first. Offer the palette shade first: the project already has it, so it's an easy change to accept.
 
-**Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It blends text opacity like `text-white/70` with the background. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. What it can't resolve (CSS variables, a background with opacity, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+**Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It follows `var(--x)` to `:root` and `.dark`, as in shadcn/ui; when a color changes in `.dark`, it gives one result for each mode, and both go in the report. It blends text opacity like `text-white/70` with the background. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. With variants (`cva`, a `variant` prop), check each variant and `hover:` state that has its own colors; a short table (variant, state, colors, ratio) keeps it readable. What it can't resolve (variables set outside `:root` and `.dark`, a background with opacity, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
 
 Gradients and text over images also go to "Check in the browser".
 

@@ -2,6 +2,8 @@
 
 Scanners (axe, Lighthouse, WAVE and others) test the rendered page. For each violation they give a rule and the failing elements: a CSS selector, an HTML snippet and, sometimes, the page URL, the visible text and measured values. The developer still has to find which component renders each element. That is the job here: find the source, group the elements that come from the same component, and fix each source once.
 
+In the scanner output, the failures are axe's `violations` and, in a Lighthouse JSON report, the accessibility audits with `score: 0` (the file is large: read those audits and their `details.items`, not all of it). axe's `incomplete` list (needs review) isn't a failure: put those items under "Check in the browser", saying what to check. Scanners miss many problems, so a problem you see in the code is still a finding when the scanner didn't flag it.
+
 ## 1. Start from the page
 
 If you have the page URL, find its route file first. The components on that page are imported from there.

@@ -1,0 +1,32 @@
+schema_version: "1.0"
+name: 10-shadcn-dark-mode
+description: A shadcn/ui dialog in Tailwind v4, with colors in CSS variables and a description color that fails only in dark mode. The skill should follow the variables, check both modes, flag the missing DialogTitle, and not report what Radix already does.
+tags: [should-trigger, tailwind, shadcn]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill, Bash]
+  prompt: "Check the accessibility of src/components/DeleteAccount.tsx"
+runs: 2
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: react-a11y-audit
+    min: 1
+  - type: tool_used
+    name: contrast-script
+    tool: Bash
+    input_match: "contrast\\.mjs"
+    min: 1
+  - type: llm
+    name: report
+    criteria: |
+      The final answer reviews DeleteAccount.tsx, which uses the shadcn/ui dialog in src/components/ui/dialog.tsx. It passes when all of these hold:
+      1. It flags the dialog description (`text-muted-foreground` on the `bg-background` of the dialog) as failing contrast in dark mode: `#555555` on `#0a0a0a`, about 2.66:1 (within 0.1). It doesn't say the light mode fails (`#737373` on white is 4.74:1 and passes).
+      2. It doesn't change the color on its own: it offers a passing color with its ratio and asks. It points to the `--muted-foreground` variable in `.dark` (the theme) as the place for the fix.
+      3. It flags that the dialog has no title (no `DialogTitle` inside `DialogContent`, so the dialog has no accessible name) and fixes it with a `DialogTitle`, visible or visually hidden.
+      4. It doesn't report a missing focus trap, Escape handling or focus return as findings: Radix, through components/ui/dialog.tsx, already does them. Mentioning them under "check in the browser" is fine.
+      5. The dark mode contrast problem is not left only under "check in the browser" as an unknown color.
+      6. It never says the component "is accessible", "is compliant" or "passes WCAG".

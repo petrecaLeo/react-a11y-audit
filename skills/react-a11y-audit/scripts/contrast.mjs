@@ -67,12 +67,13 @@ async function read(arg) {
 }
 
 // The side of a pair for one Tailwind version: its hex, or why it can't be used.
-function pick(side, ver) {
+function pick(side, ver, mode) {
   if (side.problem) return { ...side };
   if (side.value) return { ...side, hex: side.value, note: side.arg.toLowerCase() === side.value ? null : "" };
   const f = side.found.find((x) => x.ver === ver || x.ver === null);
   if (!f.hex) return { ...side, problem: f.note };
   if (side.opacity && side.alpha === null) return { ...side, problem: `opacity ${side.opacity} this script can't read: check in the browser` };
+  if (mode === "dark" && f.dark) return { ...side, hex: f.dark, note: f.note.replace(" in :root", " in .dark"), ver };
   return { ...side, hex: f.hex, note: f.note, ver };
 }
 
@@ -108,9 +109,9 @@ function suggestion(role, side, toward, ratioWith) {
   return `  To reach ${min}:1, change the ${role} to ${parts.join(" or ")}.${palette}`;
 }
 
-function report(fgSide, bgSide, ver, label) {
-  const fg = pick(fgSide, ver);
-  const bg = pick(bgSide, ver);
+function report(fgSide, bgSide, ver, mode, label) {
+  const fg = pick(fgSide, ver, mode);
+  const bg = pick(bgSide, ver, mode);
   const name = `${label}${fg.arg} on ${bg.arg}`;
   if (!bg.problem && bg.opacity) bg.problem = "has opacity, so its color depends on what is behind it: check in the browser";
   const problems = [fg, bg].filter((s) => s.problem).map((s) => `  ${s.arg}: ${s.problem}`);
@@ -146,6 +147,13 @@ const out = tw ? twHeader(tw) : [];
 for (let i = 0; i < sides.length; i += 2) {
   const usesTailwind = [sides[i], sides[i + 1]].some((s) => s.found);
   const versions = usesTailwind ? tw.versions : [null];
-  for (const ver of versions) out.push(...report(sides[i], sides[i + 1], ver, versions.length > 1 ? `[v${ver}] ` : ""));
+  for (const ver of versions) {
+    // A color that changes in .dark (CSS variables, as in shadcn/ui) gets a light and a dark result.
+    const changes = [sides[i], sides[i + 1]].some((s) => s.found?.some((f) => (f.ver === ver || f.ver === null) && f.dark));
+    for (const mode of changes ? ["light", "dark"] : [null]) {
+      const label = `${versions.length > 1 ? `[v${ver}] ` : ""}${mode ? `[${mode} mode] ` : ""}`;
+      out.push(...report(sides[i], sides[i + 1], ver, mode, label));
+    }
+  }
 }
 console.log(out.join("\n"));
