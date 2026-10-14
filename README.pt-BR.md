@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Uma skill do Claude Code que revisa componentes React em busca de problemas de acessibilidade, com base no WCAG 2.2 nível AA. Ela encontra problemas de contraste, ARIA, foco, navegação por teclado, rótulos de formulário e texto alternativo, e escreve a correção no código para cada um.
+Uma skill do Claude Code que revisa componentes React em busca de problemas de acessibilidade, com base no WCAG 2.2 nível AA. Ela encontra problemas de contraste, ARIA, foco, navegação por teclado, rótulos de formulário e texto alternativo, e escreve a correção no código para cada um. Cole o resultado de um scanner como o axe ou o Lighthouse, e ela acha o componente por trás de cada problema.
 
 ## Exemplo
 
@@ -55,6 +55,20 @@ A skill responde com um relatório. Este trecho é de uma execução real com o 
 
 Os outros itens: o `div` clicável (deveria ser um link), a imagem sem `alt`, os preços que o leitor de tela lê como dois números soltos e o nome que não é um título. O relatório também lista o que conferir no navegador, porque o CSS do card não estava no código.
 
+## Do resultado do scanner ao código
+
+Os scanners testam a página pronta, então apontam um HTML como `.grid > li:nth-child(3) > .card > .favorite`. Você ainda precisa descobrir qual componente gera aquilo. Cole o resultado do scanner e a skill faz essa parte: ela vai da página aos componentes, procura por ids, textos (inclusive nos arquivos de tradução), classes (inclusive as do CSS Modules) e pela estrutura, e junta os elementos repetidos numa correção só. Esta tabela é de uma execução real, com o resultado do axe de uma página de produtos:
+
+> | Regra | Elementos | Origem | Como encontrei |
+> |---|---|---|---|
+> | `button-name` | 24 | `src/components/ProductCard.tsx:12` | classe `favorite` e o ícone de coração (`HeartIcon`) |
+> | `image-alt` | 24 | `src/components/ProductCard.tsx:9` | classe `thumb` e `src` em `/img/produto-N.jpg` (vem de `src/products.ts`) |
+> | `label` | 1 | `src/components/Header.tsx:9` | `header > input[type=search]` e o placeholder "Buscar produtos" (em `locales/pt-BR.json`) |
+> | `color-contrast` | 1 | `src/components/Footer.module.css:2` (`.note`) | `Footer_note__k3Lm9` aponta para `Footer.module.css`, classe `.note`, usada em `Footer.tsx:7` |
+> | `frame-title` | 1 | widget de terceiros, carregado em `app/layout.tsx:13` | `#chatbox-root` está em `layout.tsx:12`; o iframe vem do `loader.js` do chatbox |
+
+Cinco regras e 51 elementos se resumiram a três arquivos do projeto, mais um widget de chat que não é código do projeto. Para problemas assim, ou para conteúdo que vem de um CMS, a skill avisa e diz onde fica a correção.
+
 ## O que ela confere
 
 - **Semântica:** `div` clicável, link sem `href`, títulos, landmarks, listas e tabelas
@@ -73,9 +87,8 @@ Cada problema vem com a gravidade (crítico, sério, moderado, menor), o critér
 
 - **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado.
 - **Ela nunca diz que um componente "está acessível".** Revisão de código e ferramentas automáticas cobrem só parte do WCAG. Teste também com o teclado e com um leitor de tela.
-- **Ela não muda cor sozinha.** Cor muitas vezes é decisão de design, e quem programa não pode mudar sozinho. A skill calcula a razão e a cor mais próxima que passa, e pergunta: aplicar, manter e avisar o design, ou mudar o token do tema.
+- **Ela não muda cor sozinha.** Cor muitas vezes é decisão de design, e quem programa não pode mudar sozinho. A skill calcula a razão e a cor mais próxima que passa, e pergunta: aplicar, manter e avisar o design, ou mudar o token do tema. Se as cores são do time de design, ela escreve um recado curto para você mandar para eles.
 - **Ela não chuta o escopo.** Se você não diz o que auditar, ela pergunta antes: os arquivos alterados na sua branch, um pull request, uma pasta ou componente, ou o repositório inteiro. Um componente e um repositório inteiro são trabalhos bem diferentes, em tempo e em tokens.
-- Ela combina com um scanner que roda na página: cole as violações do axe ou do Lighthouse, e ela acha e corrige cada uma no componente que a renderiza.
 
 ## Instalação
 
@@ -109,27 +122,50 @@ Também dá para chamar pelo nome: `/react-a11y-audit` (ou `/react-a11y-audit:re
 
 ## Testes
 
-Uma skill só ajuda se roda quando deve e fica quieta quando não deve. A pasta `evals/` tem 6 pedidos, rodados com `claude plugin eval`: 4 que devem ativar a skill e 2 pedidos de React que não devem, mesmo com problemas de acessibilidade no código. Só o pedido 2 é em português; os outros estão traduzidos na tabela.
+Uma skill só ajuda se roda quando deve, fica quieta quando não deve e se sai melhor que o Claude sem ela. A pasta `evals/` tem 8 pedidos, rodados com `claude plugin eval` e o Claude Sonnet 5.5. Os pedidos 2 e 8 são em português; os outros estão traduzidos nas tabelas.
 
-| # | Pedido | Deve ativar | Ativou | O que o teste confere |
-|---|---|---|---|---|
-| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 17 de 17 | achou os problemas plantados, calculou o contraste, pergunta antes de mudar cor |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 16 de 16 | achou os problemas plantados, rótulos em português, nada fora do tema |
-| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 16 de 16 | corrigiu cada violação, manteve a cor até a pessoa decidir |
-| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 15 | – |
-| 5 | "Converte esse componente para TypeScript" | não | 0 de 15 | – |
-| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 9 de 9 | pergunta o que auditar antes de ler qualquer componente |
+### Ela dispara na hora certa?
 
-A skill disparou certo nas 88 execuções, em 10 rodadas com o Claude Sonnet 5.5. Um juiz (LLM) também avalia cada relatório, e nos casos 1 e 3 um teste confere se o contraste foi calculado com o script. A última versão rodou uma vez por caso (os casos 4 e 5 ficaram de fora, porque a descrição não mudou). Os relatórios dos casos 1, 3 e 6 passaram. O caso 2 reprovou num critério mais rígido que a regra que ele conferia; depois de corrigido o critério, o mesmo relatório passou numa nova avaliação feita à mão.
+| # | Pedido | Deve ativar | Ativou |
+|---|---|---|---|
+| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 21 de 21 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 20 de 20 |
+| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 18 de 18 |
+| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 17 |
+| 5 | "Converte esse componente para TypeScript" | não | 0 de 17 |
+| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 11 de 11 |
+| 7 | Resultado do axe de uma página: "de onde vem cada problema no nosso código?" | sim | 4 de 4 |
+| 8 | "Revisa esse banner? As cores são do time de design" | sim | 4 de 4 |
 
-O que os testes pegaram no caminho:
+Certo nas 112 execuções. Os casos 4 e 5 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e não disparou.
+
+### Ela é melhor que o Claude sem ela?
+
+Cada caso rodou duas vezes com a skill e duas sem, com os mesmos pedidos, e o mesmo juiz (Claude Sonnet 5.5) deu a nota com os mesmos critérios.
+
+| # | Com a skill | Sem | O que fez a diferença |
+|---|---|---|---|
+| 1 | 1 de 2 | 0 de 2 | Sem a skill, o Claude trocou as cores na correção sem perguntar, estimou o contraste ("about 3.3:1") e incluiu itens que o código não tem. |
+| 2 | 2 de 2 | 0 de 2 | Sem a skill, ele apontou a regra de validação do e-mail como problema de acessibilidade. |
+| 3 | 2 de 2 | 0 de 2 | Sem a skill, ele trocou a cor do carrinho no código corrigido sem perguntar. |
+| 6 | 2 de 2 | 0 de 2 | Sem a skill, ele saiu lendo o repositório inteiro em vez de perguntar o que auditar. |
+| 7 | 2 de 2 | 0 de 2 | Os dois acharam a origem de cada problema. Sem a skill, o Claude propôs remendar o iframe do fornecedor do chat pelo código do projeto. |
+| 8 | 1 de 2 | 0 de 2 | Sem a skill, não veio um recado pronto para o time de design. |
+
+A coluna "com" é a última versão (os casos 3 e 6 são da rodada anterior aos últimos ajustes pequenos). As duas falhas dela, nos casos 1 e 8, passaram quando os mesmos relatórios foram avaliados de novo à mão: o juiz também erra.
+
+O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta é o jeito de lidar com eles: contraste calculado em vez de estimado, cor deixada para quem decide, a pergunta de escopo, o mapa do resultado do scanner até os arquivos e o recado para o design.
+
+### O que os testes pegaram no caminho
 
 1. **Contraste estimado.** Uma resposta sugeriu uma cor "about 7.9:1" quando o valor era 7,81:1. Agora toda razão, inclusive das cores sugeridas, é calculada com o trecho de código do checklist.
-2. **Itens inventados e fora do tema.** Um "Critical" para um estado de favorito que o componente nem recebe, e uma regra de validação de e-mail apontada como problema de acessibilidade. Agora a skill só aponta problemas de acessibilidade que ela vê no código.
-3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. A correção foi uma lista dos termos em português acima do modelo, uma conferência antes de enviar e menos rótulos: os itens não têm mais a marca "Confirmado", porque o que não está confirmado vai para "Conferir no navegador".
+2. **Itens inventados e fora do tema.** Um "Critical" para um estado de favorito que o componente nem recebe, uma regra de validação de e-mail apontada como problema de acessibilidade, e "os cards não estão numa lista" quando a lista fica num componente pai que não estava no código. Agora a skill só aponta problemas de acessibilidade que ela vê no código.
+3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. O modelo do relatório agora lista os termos em português, o relatório é conferido antes de enviar, e o rótulo virou uma frase ("How to fix"), que o modelo traduz com mais confiança do que a palavra solta.
 4. **Cor trocada sem perguntar** e **pedido vago auditado sem perguntar**, as duas de propósito na primeira versão. Viraram perguntas depois de feedback, e os casos 3 e 6 conferem isso.
+5. **Remendo no widget do fornecedor.** Para o iframe do chat, uma resposta ofereceu um `MutationObserver` que mexe no iframe do fornecedor. Agora a skill aponta para a configuração do fornecedor e explica por que um remendo quebra.
+6. **Resposta na língua da página.** No caso 7, o pedido foi em inglês, mas 3 de 4 respostas vieram em português, a língua da página. A regra agora diz para usar a língua das palavras de quem pediu. Essa última mudança ainda não foi testada.
 
-O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo (a skill ou o teste).
+O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo: a skill ou o teste.
 
 Para rodar os testes:
 
@@ -137,19 +173,20 @@ Para rodar os testes:
 claude plugin eval . --runs 2 --ablation none --model sonnet --judge-model sonnet --scaffold --allow-tools "Bash(node:*)" "Bash(git:*)"
 ```
 
-O `--scaffold` roda o `evals/6-vague-scope/scaffold.sh`, que cria um repositório pequeno para o caso 6.
+O `--scaffold` roda o `scaffold.sh` dos casos 6 e 7, que criam repositórios pequenos. Use `--ablation with-without` para rodar também cada caso sem a skill.
 
 ## Como está organizada
 
 ```
 skills/react-a11y-audit/
 ├── SKILL.md                   regras, passo a passo e formato do relatório
-└── references/checklist.md    as checagens, com o critério do WCAG e código ruim/bom
-evals/                         os 6 pedidos de teste e seus graders
+├── references/checklist.md    as checagens, com o critério do WCAG e código ruim/bom
+└── references/scanner-to-source.md   como achar o componente de cada resultado do scanner
+evals/                         os 8 pedidos de teste e seus graders
 .claude-plugin/                manifestos do plugin e do marketplace
 ```
 
-O Claude só vê o nome e a descrição da skill até um pedido combinar com ela. Aí ele carrega o `SKILL.md` e lê o checklist durante a auditoria.
+O Claude só vê o nome e a descrição da skill até um pedido combinar com ela. Aí ele carrega o `SKILL.md`, lê o checklist durante a auditoria e só lê o `scanner-to-source.md` quando você cola o resultado de um scanner.
 
 ## Licença
 

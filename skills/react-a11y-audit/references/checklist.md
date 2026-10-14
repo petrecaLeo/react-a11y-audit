@@ -30,7 +30,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 - **Interactive element inside another** (a button inside a link, a link inside a button). Screen readers and keyboards handle it unpredictably. 4.1.2 (A). Serious.
 - **Headings.** Use `h1` to `h6` for structure, not for font size, and don't skip levels (`h2` straight to `h4`). Text styled as a title must be a heading. 1.3.1 Info and Relationships (A), 2.4.6 Headings and Labels (AA). Moderate.
 - **Landmarks.** The page has `<main>`, and navigation sits in `<nav>`, instead of `div`s. 1.3.1 (A). Moderate.
-- **Lists.** Groups of similar items (product cards, menu links) use `<ul>`/`<li>`, so a screen reader announces "list, 8 items". 1.3.1 (A). Minor.
+- **Lists.** Groups of similar items (product cards, menu links) use `<ul>`/`<li>`, so a screen reader announces "list, 8 items". 1.3.1 (A). Minor. For a component that renders one item (a card), the list lives in the parent: put it under "Check in the browser", not in the findings.
 - **Data tables.** Use `<table>` with `<th scope="col">` (or `scope="row"`) and a `<caption>`. Never use a table for layout. 1.3.1 (A). Serious.
 
 ## 2. Accessible names
@@ -176,7 +176,7 @@ console.log(ratio("#767676", "#ffffff").toFixed(2)); // 4.54
 console.log(closest("#777777", "#ffffff"));          // #767676 (4.54:1)
 ```
 
-Use `min = 3` for large text and UI parts. Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
+Use `min = 3` for large text and UI parts. When the text is white or very light, the background is usually what should change: also run `closest(bg, fg)` and offer both. Colors from CSS variables you can't resolve, transparency, gradients and text over images go to "Check in the browser".
 
 **Don't change the color on your own.** Contrast is often a design decision. Put the options under "Decisions for you" and ask: apply the closest color, keep it and flag it to design, or change the theme token (when the color comes from one, the fix belongs there, not in each component).
 

@@ -1,0 +1,93 @@
+schema_version: "1.0"
+name: 7-axe-to-source
+description: axe results from the rendered page. The skill should find the source of each violation in the repository, group the 24 cards into one fix, and recognize the third-party widget.
+tags: [should-trigger, scanner]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 15
+  allowed_tools: [Read, Glob, Grep, Skill, Bash]
+  prompt: |
+    These are the axe results for our products page. Where does each problem come from in our code, and how do I fix it?
+
+    ```json
+    {
+      "url": "http://localhost:3000/produtos",
+      "violations": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "nodes": [
+            { "target": [".grid > li:nth-child(1) > .card > .favorite"], "html": "<button class=\"favorite\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path d=\"M12 21s-7-4.4-9.5-9A5.5...\"></path></svg></button>" },
+            { "target": [".grid > li:nth-child(2) > .card > .favorite"], "html": "<button class=\"favorite\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path d=\"M12 21s-7-4.4-9.5-9A5.5...\"></path></svg></button>" },
+            { "target": [".grid > li:nth-child(3) > .card > .favorite"], "html": "<button class=\"favorite\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path d=\"M12 21s-7-4.4-9.5-9A5.5...\"></path></svg></button>" }
+          ],
+          "totalNodes": 24
+        },
+        {
+          "id": "image-alt",
+          "impact": "critical",
+          "help": "Images must have alternative text",
+          "nodes": [
+            { "target": [".grid > li:nth-child(1) > .card > .thumb"], "html": "<img src=\"/img/produto-1.jpg\" class=\"thumb\">" },
+            { "target": [".grid > li:nth-child(2) > .card > .thumb"], "html": "<img src=\"/img/produto-2.jpg\" class=\"thumb\">" }
+          ],
+          "totalNodes": 24
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "nodes": [
+            { "target": ["header > input[type=\"search\"]"], "html": "<input type=\"search\" placeholder=\"Buscar produtos\">" }
+          ],
+          "totalNodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [".Footer_note__k3Lm9"],
+              "html": "<p class=\"Footer_note__k3Lm9\">Ofertas válidas enquanto durarem os estoques</p>",
+              "any": [{ "id": "color-contrast", "data": { "fgColor": "#9ca3af", "bgColor": "#ffffff", "contrastRatio": 2.54, "expectedContrastRatio": "4.5:1", "fontSize": "10.5pt (14px)", "fontWeight": "normal" } }]
+            }
+          ],
+          "totalNodes": 1
+        },
+        {
+          "id": "frame-title",
+          "impact": "serious",
+          "help": "Frames must have an accessible name",
+          "nodes": [
+            { "target": ["#chatbox-root > iframe"], "html": "<iframe src=\"https://widget.chatbox.example/frame.html\"></iframe>" }
+          ],
+          "totalNodes": 1
+        }
+      ]
+    }
+    ```
+runs: 2
+graders:
+  - type: tool_used
+    name: skill-fired
+    tool: Skill
+    input_match: react-a11y-audit
+    min: 1
+  - type: tool_used
+    name: read-product-card
+    tool: Read
+    input_match: ProductCard\.tsx
+    min: 1
+  - type: llm
+    name: source-map
+    criteria: |
+      The final answer maps the axe violations to the source code of the repository. It passes when all of these hold:
+      1. `button-name` and `image-alt` are traced to `src/components/ProductCard.tsx`, and the 24 elements of each are treated as one fix in that component, not one fix per element.
+      2. The search field without a label is traced to `src/components/Header.tsx`.
+      3. The `Footer_note__k3Lm9` contrast problem is traced to the Footer component (`Footer.tsx` and/or `Footer.module.css`), uses the measured colors (2.54:1), offers a color that passes with its ratio, and asks before changing it.
+      4. The chat `iframe` is identified as coming from the third-party script loaded in `app/layout.tsx`, with the fix in the vendor's settings or a support request, not in the project's components.
+      5. No fix edits built or rendered HTML; fixes are in the React source.
+      6. It never says the page "is accessible", "is compliant" or "passes WCAG".
