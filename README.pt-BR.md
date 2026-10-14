@@ -30,30 +30,30 @@ export function ProductCard({ id, name, image, price, oldPrice, onFavorite }: Pr
 
 A skill responde com um relatório. Este trecho é de uma execução real com o Claude Sonnet 5.5 (em inglês, porque o pedido foi em inglês):
 
-> **2 critical, 2 serious, 2 moderate, 0 minor. 3 items to check in the browser.**
+> **3 critical or serious blockers below, 7 findings in all: 2 critical, 3 serious, 2 moderate. 4 items to check in the browser. I computed the contrast ratios with the checklist snippet and assumed a white background.**
 >
-> **2. [Critical] The favorite control is not a button and has no name**
+> **2. [Critical] The whole card navigates only with a mouse click (`ProductCard:20`)**
 > **WCAG 2.2:** 2.1.1 Keyboard (A), 4.1.2 Name, Role, Value (A)
-> **Problem:** The `span` with `onClick` can't be focused or activated by keyboard. The icon-only content also gives it no accessible name.
-> **Fix:**
+> **Problem:** The `div` can't be focused and has no role. Keyboard and screen reader users can't open the product.
+> **How to fix:** Make the title a real link and drop the card's `onClick`. Wrapping the whole card in a link would nest the favorite button inside it, so use this instead:
 > ```tsx
-> <button
->   type="button"
->   className="favorite"
->   aria-label={`Add ${name} to favorites`}
->   onClick={(e) => { e.stopPropagation(); onFavorite(id); }}
-> >
->   <HeartIcon aria-hidden="true" />
-> </button>
+> // before
+> <div className="card" onClick={() => router.push(`/product/${id}`)}>
+>   <div className="title">{name}</div>
+> // after
+> <div className="card">
+>   <h3 className="title"><Link href={`/product/${id}`}>{name}</Link></h3>
 > ```
 >
 > **Decisions for you**
-> - **Old price color** `#9ca3af` on `#ffffff` is 2.54:1. The closest color that passes is `#727780` (4.50:1). Should I apply it, keep it and flag it to design, or change it in the theme token?
-> - **Current price color** `#16a34a` on `#ffffff` is 3.30:1. The closest color that passes is `#12873d` (4.61:1). The same three options apply. Making the text 24px or larger (or 18.66px bold) would also drop the requirement to 3:1. I can't tell whether that suits the design.
+> - **Old price color** `#9ca3af` on `#ffffff` is 2.54:1. The closest color that passes is `#727780` (4.50:1).
+> - **Current price color** `#16a34a` on `#ffffff` is 3.30:1. The closest color that passes is `#12873d` (4.61:1).
 >
-> I can apply fixes 1, 2, 3, 5 and 6 to the file now, if you want. I'll leave the colors until you answer.
+> For each, should I apply the closest color, keep the current one and write a message for design, or change it in the theme token? If these colors come from a token, the fix belongs there. I left both unchanged in the code above.
+>
+> I haven't edited any files. Want me to apply fixes 1, 2, 3, 6 and 7 now, and leave the colors until you decide?
 
-Os outros itens: o `div` clicável (deveria ser um link), a imagem sem `alt`, os preços que o leitor de tela lê como dois números soltos e o nome que não é um título. O relatório também lista o que conferir no navegador, porque o CSS do card não estava no código.
+Os outros itens: o botão de favoritar (um `span` sem nome), a imagem sem `alt`, os preços que o leitor de tela lê como dois números soltos e o nome que não é um título. O relatório também lista o que conferir no navegador, porque o CSS do card não estava no código.
 
 ## Do resultado do scanner ao código
 
