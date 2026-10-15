@@ -14,6 +14,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 8. Target size, motion and media
 9. Page level
 10. Don't report
+11. Best practice, not a failure
 
 ## 1. Semantics and interactive elements
 
@@ -186,3 +187,14 @@ Gradients and text over images also go to "Check in the browser".
 - 4.1.1 Parsing. It was removed in WCAG 2.2.
 - Contrast of disabled controls.
 - AAA criteria as failures. Mention them as Minor suggestions at most.
+
+## 11. Best practice, not a failure
+
+Report these as Minor at most, and say they are best practice rather than a WCAG failure:
+
+- A data table without a name (`<caption>` or `aria-label`).
+- Sorting shown without `aria-sort`.
+- The same name on a control in every row ("Open menu", "Select row") when the row has a name or header that gives context. With no context at all, Moderate (2.4.6).
+- A `nav` or another landmark without a name when it's the only one of its kind on the page. With two or more of the same kind, Moderate.
+- Pagination without `aria-current="page"` on the current page.
+- The same words repeated in `aria-label`, `title` and hidden text.
