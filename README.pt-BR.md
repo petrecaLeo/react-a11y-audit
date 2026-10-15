@@ -216,6 +216,19 @@ evals/                         os 13 pedidos de teste e seus graders
 
 O Claude só vê o nome e a descrição da skill até um pedido combinar com ela. Aí ele carrega o `SKILL.md`, lê o checklist durante a auditoria e só lê o `scanner-to-source.md` quando você cola o resultado de um scanner.
 
+## Próximos passos
+
+A versão 1.0.0 é a que este README descreve. O que pode vir depois:
+
+- **Testar as partes do checklist que nenhum caso cobre ainda:** teclado em componentes próprios (menus, abas), mensagens de status, o nível da página (`lang`, título), tamanho de alvo e animação.
+- **Um segundo projeto real, em Next.js.** O shadcn-admin usa Vite, então as checagens do Next.js (`app/layout.tsx`, `metadata`) ainda não rodaram em código de verdade. Um projeto com Tailwind v3 testaria esse caminho também.
+- **Mais execuções por caso.** As últimas mudanças rodaram duas vezes cada caso.
+- **Ler o `tailwind.config.ts`.** Hoje o script lê só configs `.js`, `.cjs` e `.mjs`.
+- **Modo PR:** separar o que o pull request criou do que já existia.
+- **Conferir depois de corrigir:** rodar o que o projeto já tiver (eslint-plugin-jsx-a11y, Playwright ou Storybook com axe) para fechar o ciclo auditar, corrigir e conferir.
+- **Dizer o que o leitor de tela deve falar** em cada correção ("Adicionar aos favoritos, botão"), mais os passos de teclado, para qualquer pessoa conferir.
+- **Um GIF da skill rodando** neste README.
+
 ## Licença
 
 [MIT](LICENSE). As paletas de cores em `scripts/tw-colors.json` vêm do [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) (licença MIT, Tailwind Labs).

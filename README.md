@@ -216,6 +216,19 @@ evals/                         the 13 test requests and their graders
 
 Claude only sees the skill's name and description until a request matches. Then it loads `SKILL.md`, reads the checklist during the audit, and reads `scanner-to-source.md` only when you paste scanner results.
 
+## Next steps
+
+Version 1.0.0 is what this README describes. What could come next:
+
+- **Test the parts of the checklist that no case covers yet:** keyboard in custom widgets (menus, tabs), status messages, page level (`lang`, title) and target size and motion.
+- **A second real project, in Next.js.** shadcn-admin uses Vite, so the Next.js checks (`app/layout.tsx`, `metadata`) haven't run on real code yet. One with Tailwind v3 would also test that path.
+- **More runs per case.** The last changes ran twice per case.
+- **Read `tailwind.config.ts`.** Today the script reads only `.js`, `.cjs` and `.mjs` configs.
+- **PR mode:** report what a pull request introduced apart from what was already there.
+- **Check after fixing:** run what the project already has (eslint-plugin-jsx-a11y, Playwright or Storybook with axe) to close the audit, fix, check loop.
+- **Say what a screen reader should announce** for each fix ("Add to favorites, button"), plus the keyboard steps, so anyone can check it.
+- **A GIF of the skill running** in this README.
+
 ## License
 
 [MIT](LICENSE). The color palettes in `scripts/tw-colors.json` come from [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) (MIT License, Tailwind Labs).
