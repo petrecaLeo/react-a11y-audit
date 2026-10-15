@@ -129,21 +129,21 @@ Uma skill só ajuda se roda quando deve, fica quieta quando não deve e se sai m
 
 | # | Pedido | Deve ativar | Ativou |
 |---|---|---|---|
-| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 29 de 29 |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 34 de 34 |
-| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 29 de 29 |
-| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 23 |
-| 5 | "Converte esse componente para TypeScript" | não | 1 de 29 |
-| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 17 de 17 |
-| 7 | Resultado do axe de uma página: "de onde vem cada problema no nosso código?" | sim | 25 de 25 |
-| 8 | "Revisa esse banner? As cores são do time de design" | sim | 17 de 17 |
-| 9 | "Confere a acessibilidade de src/components/PlanCard.tsx" (Tailwind v4, com uma cor do projeto) | sim | 16 de 16 |
-| 10 | "Confere a acessibilidade de src/components/DeleteAccount.tsx" (dialog do shadcn/ui, uma cor que só falha no modo escuro) | sim | 12 de 12 |
-| 11 | "Confere a acessibilidade desse componente React Native?" | não | 0 de 4 |
-| 12 | "Meu campo de busca perde o foco a cada letra que digito. Por quê?" | não | 0 de 4 |
-| 13 | "Audita a acessibilidade desse formulário" (um formulário sem problema real) | sim | 4 de 4 |
+| 1 | "Audita a acessibilidade desse componente" (ProductCard) | sim | 38 de 38 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (sem a palavra "acessibilidade") | sim | 41 de 41 |
+| 3 | Violações do Lighthouse coladas, "corrige no Header" | sim | 31 de 31 |
+| 4 | "Esse ProductCard renderiza demais, como evito?" | não | 0 de 25 |
+| 5 | "Converte esse componente para TypeScript" | não | 1 de 31 |
+| 6 | "Confere a acessibilidade do meu app?" num repositório com vários componentes | sim | 19 de 19 |
+| 7 | Resultado do axe de uma página: "de onde vem cada problema no nosso código?" | sim | 27 de 27 |
+| 8 | "Revisa esse banner? As cores são do time de design" | sim | 32 de 32 |
+| 9 | "Confere a acessibilidade de src/components/PlanCard.tsx" (Tailwind v4, com uma cor do projeto) | sim | 18 de 18 |
+| 10 | "Confere a acessibilidade de src/components/DeleteAccount.tsx" (dialog do shadcn/ui, uma cor que só falha no modo escuro) | sim | 14 de 14 |
+| 11 | "Confere a acessibilidade desse componente React Native?" | não | 0 de 6 |
+| 12 | "Meu campo de busca perde o foco a cada letra que digito. Por quê?" | não | 0 de 6 |
+| 13 | "Audita a acessibilidade desse formulário" (um formulário sem problema real) | sim | 8 de 8 |
 
-Certo em 242 de 243 execuções. Os casos 4, 5 e 12 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e o caso 12 ainda tem a palavra "foco". Ela ficou quieta todas as vezes, menos uma nas 29 execuções do caso 5.
+Certo em 295 de 296 execuções. Os casos 4, 5 e 12 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e o caso 12 ainda tem a palavra "foco". Ela ficou quieta todas as vezes, menos uma nas 31 execuções do caso 5.
 
 ### Ela é melhor que o Claude sem ela?
 
@@ -159,7 +159,7 @@ Cada caso rodou com e sem a skill (duas vezes cada, o caso 9 quatro vezes), com 
 | 8 | 1 de 2 | 0 de 2 | Sem a skill, não veio um recado pronto para o time de design. |
 | 9 | 4 de 4 | 0 de 4 | Sem a skill, o Claude usou as cores do Tailwind v3 (`#9ca3af`) num projeto v4 e estimou as razões ("about 2.5:1"). Uma resposta não achou a cor do projeto no `@theme`. |
 
-Os casos 1 a 8 são da última comparação completa. O caso 9 é da rodada depois da mudança no script (antes dela, 1 de 2: veja o item 7 abaixo). As falhas nos casos 1, 2 e 8 passaram quando os mesmos relatórios foram avaliados de novo, pedindo ao juiz o motivo de cada item: o juiz também erra. Depois da mudança, os casos 1, 3 e 8 rodaram mais duas vezes: os 6 relatórios passaram, 2 deles só nessa segunda avaliação. Os casos 10 a 13 vieram depois e só rodaram com a skill: o caso 10 passou em 3 de 3 depois das mudanças do item 8 abaixo, e o caso 13 não inventou problema em 2 de 2. Depois, os casos 1 a 9 rodaram mais duas vezes com todas as mudanças: o juiz reprovou 4 relatórios, 3 passaram na segunda avaliação, e o do caso 3 levou ao item 9 abaixo. Depois do teste no projeto real (abaixo), os 13 casos rodaram mais duas vezes: 23 de 26 passaram de primeira. Dos outros 3, um passou na segunda avaliação, um no caso 2 era real (um estilo inline apontado como achado) e passou em 3 de 3 depois de uma correção, e um no caso 1 é discutível: uma sugestão sobre o estado de favorito, colocada em "Conferir no navegador".
+Os casos 1 a 8 são da última comparação completa. O caso 9 é da rodada depois da mudança no script (antes dela, 1 de 2: veja o item 7 abaixo). As falhas nos casos 1, 2 e 8 passaram quando os mesmos relatórios foram avaliados de novo, pedindo ao juiz o motivo de cada item: o juiz também erra. Depois da mudança, os casos 1, 3 e 8 rodaram mais duas vezes: os 6 relatórios passaram, 2 deles só nessa segunda avaliação. Os casos 10 a 13 vieram depois e só rodaram com a skill: o caso 10 passou em 3 de 3 depois das mudanças do item 8 abaixo, e o caso 13 não inventou problema em 2 de 2. Depois, os casos 1 a 9 rodaram mais duas vezes com todas as mudanças: o juiz reprovou 4 relatórios, 3 passaram na segunda avaliação, e o do caso 3 levou ao item 9 abaixo. Depois do teste no projeto real (abaixo), os 13 casos rodaram mais duas vezes: 23 de 26 passaram de primeira. Dos outros 3, um passou na segunda avaliação, um no caso 2 era real (um estilo inline apontado como achado) e passou em 3 de 3 depois de uma correção, e um no caso 1 é discutível: uma sugestão sobre o estado de favorito, colocada em "Conferir no navegador". Com um juiz por critério e critérios mais claros (item 11 abaixo), a última rodada passou em 26 de 26 de primeira, sem segunda avaliação.
 
 O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta é o jeito de lidar com eles: contraste calculado em vez de estimado, cor deixada para quem decide, a pergunta de escopo, o mapa do resultado do scanner até os arquivos e o recado para o design.
 
@@ -167,13 +167,14 @@ O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta 
 
 Os casos acima foram escritos para a skill, então não mostram tudo. Para testar em código que ninguém escreveu para ela, a skill auditou o [shadcn-admin](https://github.com/satnaing/shadcn-admin) (15,7 mil estrelas; React 19, Vite, shadcn/ui, Tailwind v4; commit `e16c87f`). O axe 4.11 rodou nas mesmas páginas, no modo claro e no escuro, com as regras A e AA do WCAG, e achou 2 problemas: o select de "linhas por página" não tem nome (páginas de tarefas e de usuários), e o badge "suspended" dá 4,0:1. A skill leu o código de 4 páginas: tarefas, usuários, configurações e login.
 
-| | Primeira rodada | Depois das correções do item 10 |
+| | Primeira rodada | Depois das correções dos itens 10 e 12 |
 |---|---|---|
-| Problemas do axe achados | 0 de 2 | 2 de 2 (badge com 4,01:1) |
+| Problemas do axe achados | 0 de 2 | 2 de 2, com a severidade do axe: Critical para o select, Serious para o badge (4,01:1) |
 | Páginas com contraste calculado | 3 de 4 | 4 de 4 |
 | Achados falsos | 4 | nenhum dos 4 voltou; os 4 achados novos conferidos à mão eram reais |
+| Boas práticas (tabela sem nome, o mesmo nome em toda linha) | Serious | Minor |
 
-A skill também achou o que o axe não vê numa página carregada: grupos de rádio sem nome num drawer fechado, o menu de configurações no celular, bordas de campo com 1,23:1 (1.4.11), foco que some no modo de alto contraste do Windows, um nível de heading pulado, um link sem nenhum sinal visual e um título de card que não é heading. Algumas severidades estão acima do que a maioria dos auditores daria, como "Serious" para uma tabela sem nome.
+A skill também achou o que o axe não vê numa página carregada: grupos de rádio sem nome num drawer fechado, o menu de configurações no celular, bordas de campo com 1,23:1 (1.4.11), foco que some no modo de alto contraste do Windows, um nível de heading pulado, um link sem nenhum sinal visual e um título de card que não é heading.
 
 ### O que os testes pegaram no caminho
 
@@ -187,8 +188,10 @@ A skill também achou o que o axe não vê numa página carregada: grupos de rá
 8. **Cor de dentro do wrapper esquecida.** No caso 10, a cor da descrição vem de `components/ui/dialog.tsx`. O Claude leu esse arquivo, mas calculou só as cores escritas no `DeleteAccount.tsx`, e perdeu a falha do modo escuro em 2 de 2. Com uma regra para incluir as cores dos wrappers, 1 de 2 ainda deixou o par em "Conferir no navegador" sem calcular. Uma última conferência antes de enviar (par de cores que ficou lá passa pelo script antes) levou a 3 de 3.
 9. **Uma nota sobre o scanner que escondeu um achado.** Uma linha nova dizia para ler só as falhas do scanner, e uma resposta no caso 3 chamou de "opcional" o nome que falta no link do carrinho, porque o Lighthouse não apontou. A linha agora diz que um problema visto no código continua sendo achado: 3 de 3.
 10. **O projeto real.** No shadcn-admin, a primeira rodada perdeu os dois problemas do axe: não leu a paginação compartilhada e mandou para a lista do navegador o badge com fundo transparente. Numa das páginas, leu arquivos com `cat`, que foi bloqueado, e desistiu do script também. Também teve 4 achados falsos: `autoComplete` pedido num formulário em que um admin edita outras pessoas, um label que o wrapper do formulário já liga, e dois ícones do lucide que já são escondidos. Agora o script aceita `--behind` para fundos transparentes e lê cores do tema com transparência, e a skill lê todo componente compartilhado que a página renderiza, lê arquivos com as ferramentas de arquivo e manda para a lista do navegador o que ela escreveria com ressalva ("pode", "confira antes").
+11. **O juiz lia errado os próprios critérios.** Com todos os itens num critério só, o juiz reprovava de 20% a 30% dos relatórios certos nos casos 1, 2 e 8, sem dizer por quê. Com um juiz por item, a falha passou a dizer o item, e os critérios se mostraram abertos a outra leitura: o estado de favorito, dado como exemplo de achado inventado, pegava também uma sugestão opcional; "sem bloco de código" no recado para o design foi lido como regra para a resposta inteira; e uma pergunta dentro desse recado parecia uma pergunta ao usuário. Com critérios mais claros, a última rodada passou em 26 de 26.
+12. **Severidade, e um label ao lado do select.** No projeto real, boas práticas vinham como "Serious" (tabela sem nome, o mesmo nome em toda linha). O checklist agora lista esses itens como Minor no máximo. Numa rodada, a skill leu a paginação mas não pegou o select: o texto "Rows per page" fica ao lado sem ser o label dele, e um select do Radix não pega o nome do valor que mostra. O checklist agora diz isso, e as duas páginas voltaram a achar, como Critical, igual ao axe.
 
-O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo: a skill ou o teste.
+O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo: a skill ou o teste. Os casos 1, 2, 3, 8 e 13 agora avaliam cada critério com um juiz próprio, então uma falha diz qual item reprovou.
 
 Para rodar os testes:
 

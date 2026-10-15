@@ -72,6 +72,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
   <input id={id} type="email" autoComplete="email" />
   ```
 
+- **Text next to a control isn't its label.** A `<p>Rows per page</p>` beside a `Select` doesn't name it, and a shadcn/Radix `SelectTrigger` (a combobox) doesn't take its name from the value it shows. Link the text with `aria-labelledby`, or add `aria-label`. 4.1.2 (A). Critical.
 - **Error shown only with color** (red border), or not linked to the field. Show the error as text, link it with `aria-describedby` and set `aria-invalid`. 3.3.1 Error Identification (A), 1.4.1 Use of Color (A). Serious.
 
   ```tsx

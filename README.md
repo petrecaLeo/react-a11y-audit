@@ -129,21 +129,21 @@ A skill only helps if it runs when it should, stays out of the way when it shoul
 
 | # | Request | Should trigger | Triggered |
 |---|---|---|---|
-| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 29 of 29 |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 34 of 34 |
-| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 29 of 29 |
-| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 23 |
-| 5 | "Convert this component to TypeScript" | no | 1 of 29 |
-| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 17 of 17 |
-| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 25 of 25 |
-| 8 | "Revisa esse banner? As cores são do time de design" | yes | 17 of 17 |
-| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 16 of 16 |
-| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 12 of 12 |
-| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 4 |
-| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 4 |
-| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 4 of 4 |
+| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 38 of 38 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 41 of 41 |
+| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 31 of 31 |
+| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 25 |
+| 5 | "Convert this component to TypeScript" | no | 1 of 31 |
+| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 19 of 19 |
+| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 27 of 27 |
+| 8 | "Revisa esse banner? As cores são do time de design" | yes | 32 of 32 |
+| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 18 of 18 |
+| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 14 of 14 |
+| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 6 |
+| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 6 |
+| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 8 of 8 |
 
-Right in 242 of 243 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 even has the word "focus". It stayed out every time, except once in case 5's 29 runs.
+Right in 295 of 296 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 even has the word "focus". It stayed out every time, except once in case 5's 31 runs.
 
 ### Is it better than Claude without it?
 
@@ -159,7 +159,7 @@ Each case ran with and without the skill (twice each, case 9 four times), with t
 | 8 | 1 of 2 | 0 of 2 | Without the skill, there was no message ready to send to the design team. |
 | 9 | 4 of 4 | 0 of 4 | Without the skill, Claude used Tailwind v3 colors (`#9ca3af`) in a v4 project and estimated the ratios ("about 2.5:1"). One answer didn't find the project color in `@theme`. |
 
-Cases 1 to 8 are from the last full comparison. Case 9 is from the round after the script change (before it, 1 of 2: see item 7 below). The failures in cases 1, 2 and 8 passed when the same reports were graded again, asking the judge for the reason behind each item: the judge isn't perfect either. After the change, cases 1, 3 and 8 ran twice more: all 6 reports passed, 2 of them only on that second grading. Cases 10 to 13 came later and only ran with the skill: case 10 passed 3 of 3 after the changes in item 8 below, and case 13 didn't invent a problem in 2 of 2. Then cases 1 to 9 ran twice more with all the changes: the judge failed 4 reports, 3 passed on the second grading, and the one in case 3 led to item 9 below. After the real project test below, all 13 cases ran twice again: 23 of 26 passed at once. Of the other 3, one passed on the second grading, one in case 2 was real (an inline style reported as a finding) and passed 3 of 3 after a fix, and one in case 1 is debatable: a suggestion about the favorite state, placed under "Check in the browser".
+Cases 1 to 8 are from the last full comparison. Case 9 is from the round after the script change (before it, 1 of 2: see item 7 below). The failures in cases 1, 2 and 8 passed when the same reports were graded again, asking the judge for the reason behind each item: the judge isn't perfect either. After the change, cases 1, 3 and 8 ran twice more: all 6 reports passed, 2 of them only on that second grading. Cases 10 to 13 came later and only ran with the skill: case 10 passed 3 of 3 after the changes in item 8 below, and case 13 didn't invent a problem in 2 of 2. Then cases 1 to 9 ran twice more with all the changes: the judge failed 4 reports, 3 passed on the second grading, and the one in case 3 led to item 9 below. After the real project test below, all 13 cases ran twice again: 23 of 26 passed at once. Of the other 3, one passed on the second grading, one in case 2 was real (an inline style reported as a finding) and passed 3 of 3 after a fix, and one in case 1 is debatable: a suggestion about the favorite state, placed under "Check in the browser". With one judge per criterion and clearer criteria (item 11 below), the last round passed 26 of 26 at once, with no second grading.
 
 Claude alone already finds most problems. What the skill adds is how it handles them: contrast computed instead of estimated, colors left to whoever decides them, the scope question, the map from scanner results to files, and the message for design.
 
@@ -167,13 +167,14 @@ Claude alone already finds most problems. What the skill adds is how it handles 
 
 The cases above were written for the skill, so they can't show everything. To check it on code nobody wrote for it, the skill audited [shadcn-admin](https://github.com/satnaing/shadcn-admin) (15.7k stars; React 19, Vite, shadcn/ui, Tailwind v4; commit `e16c87f`). axe 4.11 ran on the same pages in light and dark mode, with the WCAG A and AA rules, and found 2 problems: the "rows per page" select has no name (tasks and users pages), and the "suspended" badge is 4.0:1. The skill read the code of 4 pages: tasks, users, settings and sign-in.
 
-| | First run | After the fixes in item 10 |
+| | First run | After the fixes in items 10 and 12 |
 |---|---|---|
-| axe's problems found | 0 of 2 | 2 of 2 (badge at 4.01:1) |
+| axe's problems found | 0 of 2 | 2 of 2, with axe's severity: Critical for the select, Serious for the badge (4.01:1) |
 | Pages with contrast computed | 3 of 4 | 4 of 4 |
 | False findings | 4 | none of the 4 came back; the 4 new findings checked by hand were real |
+| Best practices (a table without a name, the same name in every row) | Serious | Minor |
 
-The skill also found what axe can't see on a loaded page: radio groups with no name in a closed drawer, the settings menu on mobile, input borders at 1.23:1 (1.4.11), focus that disappears in Windows high contrast mode, a skipped heading level, a link with no visual cue and a card title that isn't a heading. Some severities are higher than most auditors would give, like "Serious" for a table without a name.
+The skill also found what axe can't see on a loaded page: radio groups with no name in a closed drawer, the settings menu on mobile, input borders at 1.23:1 (1.4.11), focus that disappears in Windows high contrast mode, a skipped heading level, a link with no visual cue and a card title that isn't a heading.
 
 ### What the tests caught along the way
 
@@ -187,8 +188,10 @@ The skill also found what axe can't see on a loaded page: radio groups with no n
 8. **Colors inside wrappers skipped.** In case 10, the description color comes from `components/ui/dialog.tsx`. Claude read that file but computed only the colors written in `DeleteAccount.tsx`, so it missed the dark mode failure in 2 of 2. With a rule to include the wrappers' colors, 1 of 2 still left the pair under "Check in the browser" without computing it. A last check before sending (a color pair left there goes through the script first) brought it to 3 of 3.
 9. **A scanner note that hid a finding.** A new line said to read only the scanner's failures, and one answer in case 3 then called the cart link's missing name "optional" because Lighthouse didn't flag it. The line now says a problem seen in the code is still a finding: 3 of 3.
 10. **The real project.** On shadcn-admin, the first run missed both of axe's problems: it didn't read the shared pagination, and it sent the badge on a transparent background to the browser list. On one page it read files with `cat`, which was blocked, and gave up on the script too. It also had 4 false findings: `autoComplete` asked for in a form where an admin edits other people, a label that the form wrapper already links, and two lucide icons that are already hidden. Now the script takes `--behind` for transparent backgrounds and reads theme colors with alpha, and the skill reads every shared component a page renders, reads files with the file tools, and moves anything it would hedge ("may", "check first") to the browser list.
+11. **The judge misread its own criteria.** With every item in one criterion, the judge failed 20 to 30% of correct reports in cases 1, 2 and 8, without saying why. With one judge per item, the failures named the item, and the criteria turned out open to another reading: the favorite state, given as an example of an invented finding, also caught an optional suggestion; "no code block" for the message to design was read as a rule for the whole answer; and a question inside that message looked like asking the user. With clearer criteria, the last round passed 26 of 26.
+12. **Severity, and a label beside the select.** On the real project, best practices came as "Serious" (a table without a name, the same name in every row). The checklist now lists them as Minor at most. In one run the skill read the pagination but missed the select: the text "Rows per page" sits beside it without labelling it, and a Radix select doesn't take its name from the value it shows. The checklist now says so, and both pages found it again, as Critical, like axe.
 
-The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test.
+The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test. Cases 1, 2, 3, 8 and 13 now grade each criterion with its own judge, so a failure says which item failed.
 
 To run the tests:
 
