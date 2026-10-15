@@ -35,7 +35,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 
 ## 2. Accessible names
 
-- **Icon-only button or link.** It needs a name: `aria-label` or visually hidden text. Hide the icon itself. 4.1.2 (A). Critical.
+- **Icon-only button or link.** It needs a name: `aria-label` or visually hidden text. Hide the icon itself. Some icon libraries already do: lucide-react renders `aria-hidden="true"` by default in recent versions, so check the installed version before reporting one of its icons. 4.1.2 (A). Critical.
 
   ```tsx
   // bad
@@ -84,7 +84,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 
 - **Required field marked only with a colored `*`.** Use `required` (or `aria-required="true"`) and say what `*` means. 3.3.2 (A). Moderate.
 - **Radio or checkbox group without a group name.** Use `<fieldset>` and `<legend>`. 1.3.1 (A). Serious.
-- **Personal data fields** (name, email, phone, address, postal code) without `autoComplete`. 1.3.5 Identify Input Purpose (AA). Moderate.
+- **Personal data fields** (name, email, phone, address, postal code) without `autoComplete`. It applies only to data about the person filling in the form: a form where an admin edits other people's data is exempt. 1.3.5 Identify Input Purpose (AA). Moderate.
 - **Paste blocked** in password or code fields (`onPaste={e => e.preventDefault()}`). It breaks password managers. 3.3.8 Accessible Authentication (Minimum) (AA). Serious.
 - **Submit with errors and the focus stays on the button.** Move focus to the first invalid field or to an error summary. 3.3.1 (A). Moderate.
 
@@ -159,7 +159,7 @@ Run it as a command of its own, starting with `node` and the script's full path:
 
 For each pair, it prints the ratio, whether it passes 4.5:1 and 3:1, and what passes: a shade from the same palette when there is one (`text-gray-500`), and the closest new color. Use `--min 3` for large text and UI parts. When the foreground is lighter than the background (white text on a button), the background is usually what should change, so the script suggests it first. Offer the palette shade first: the project already has it, so it's an easy change to accept.
 
-**Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It follows `var(--x)` to `:root` and `.dark`, as in shadcn/ui; when a color changes in `.dark`, it gives one result for each mode, and both go in the report. It blends text opacity like `text-white/70` with the background. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. With variants (`cva`, a `variant` prop), check each variant and `hover:` state that has its own colors; a short table (variant, state, colors, ratio) keeps it readable. What it can't resolve (variables set outside `:root` and `.dark`, a background with opacity, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+**Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It follows `var(--x)` to `:root` and `.dark`, as in shadcn/ui; when a color changes in `.dark`, it gives one result for each mode, and both go in the report. It blends text opacity like `text-white/70` with the background. For a background with opacity (`bg-red-500/10`, or a theme color like `oklch(1 0 0 / 15%)`), add `--behind` with the color behind it, usually the nearest parent background (`--behind bg-background`); pairs with different colors behind them go in separate commands. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. With variants (`cva`, a `variant` prop), check each variant and `hover:` state that has its own colors; a short table (variant, state, colors, ratio) keeps it readable. What it can't resolve (variables set outside `:root` and `.dark`, a background with opacity and no `--behind`, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
 
 Gradients and text over images also go to "Check in the browser".
 

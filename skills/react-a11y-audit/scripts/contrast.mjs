@@ -1,26 +1,29 @@
 #!/usr/bin/env node
 // Computes the WCAG contrast ratio of color pairs and the closest colors that pass.
-// Usage: node contrast.mjs [--project <dir>] [--v3 | --v4] [--min 3] <foreground> <background> [<foreground> <background> ...]
+// Usage: node contrast.mjs [--project <dir>] [--v3 | --v4] [--min 3] [--behind <color>] <foreground> <background> [<foreground> <background> ...]
 // A color is a hex, rgb(), hsl() or oklch() value, a basic CSS name (white, red) or a Tailwind class (text-gray-400, bg-brand-500, text-white/70).
+// --behind is the color behind a background with opacity (bg-red-500/10 inside a bg-background card).
 // Example: node contrast.mjs --project . text-gray-400 bg-white text-white "#0ea5e9"
 
 import path from "node:path";
-import { toHex, loadTailwind, twHeader, resolveClass, shades } from "./tw-color.mjs";
+import { parseColor, loadTailwind, twHeader, resolveClass, shades } from "./tw-color.mjs";
 
 const args = process.argv.slice(2);
 let project = process.cwd();
 let version = null;
 let min = 4.5;
+let behindArg = null;
 const colors = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--project") project = path.resolve(args[++i]);
   else if (args[i] === "--v3") version = 3;
   else if (args[i] === "--v4") version = 4;
   else if (args[i] === "--min") min = Number(args[++i]);
+  else if (args[i] === "--behind") behindArg = args[++i];
   else colors.push(args[i]);
 }
 if (colors.length === 0 || colors.length % 2 || !(min > 1)) {
-  console.log("Usage: node contrast.mjs [--project <dir>] [--v3 | --v4] [--min 3] <foreground> <background> [<foreground> <background> ...]");
+  console.log("Usage: node contrast.mjs [--project <dir>] [--v3 | --v4] [--min 3] [--behind <color>] <foreground> <background> [<foreground> <background> ...]");
   process.exit(1);
 }
 
@@ -58,23 +61,29 @@ function closest(hex, toward, passes) {
 
 let tw = null;
 async function read(arg) {
-  const hex = toHex(arg);
-  if (hex) return { arg, value: hex };
+  const color = parseColor(arg);
+  if (color) return { arg, value: color };
   tw ??= await loadTailwind(project, version);
   const r = resolveClass(arg, tw);
   if (r.problem === "not a color utility") return { arg, problem: "not a color this script can read: use a hex, rgb(), hsl(), oklch() or a Tailwind color class" };
   return { arg, ...r };
 }
 
-// The side of a pair for one Tailwind version: its hex, or why it can't be used.
+// The side of a pair for one Tailwind version and mode: its hex and alpha (null when opaque), or why it can't be used.
 function pick(side, ver, mode) {
   if (side.problem) return { ...side };
-  if (side.value) return { ...side, hex: side.value, note: side.arg.toLowerCase() === side.value ? null : "" };
+  const opacity = (a) => (a < 1 ? a : null);
+  if (side.value) return { ...side, hex: side.value.hex, alpha: opacity(side.value.alpha), note: side.arg.toLowerCase() === side.value.hex ? null : "" };
   const f = side.found.find((x) => x.ver === ver || x.ver === null);
-  if (!f.hex) return { ...side, problem: f.note };
   if (side.opacity && side.alpha === null) return { ...side, problem: `opacity ${side.opacity} this script can't read: check in the browser` };
-  if (mode === "dark" && f.dark) return { ...side, hex: f.dark, note: f.note.replace(" in :root", " in .dark"), ver };
-  return { ...side, hex: f.hex, note: f.note, ver };
+  let { hex, alpha = 1, note } = f;
+  if (mode === "dark" && f.dark) {
+    if (!f.dark.hex) return { ...side, problem: `in .dark it is ${f.dark.raw}, which this script can't resolve: check in the browser` };
+    ({ hex, alpha } = f.dark);
+    note = note.replace(" in :root", " in .dark");
+  }
+  if (!hex) return { ...side, problem: f.note };
+  return { ...side, hex, note, ver, alpha: opacity(alpha * (side.alpha ?? 1)) };
 }
 
 const verdict = (r) => {
@@ -105,35 +114,44 @@ function suggestion(role, side, toward, ratioWith) {
   }
   const near = closest(side.hex, toward, passes);
   if (near) parts.push(`${near} (${fmt(ratioWith(near))}, closest to the current color)`);
-  if (!parts.length) return `  The ${role} can't get ${toward === "white" ? "light" : "dark"} enough to reach ${min}:1.`;
-  return `  To reach ${min}:1, change the ${role} to ${parts.join(" or ")}.${palette}`;
+  const same = side.alpha ? " (at the same opacity)" : "";
+  if (!parts.length) return `  The ${role}${same} can't get ${toward === "white" ? "light" : "dark"} enough to reach ${min}:1.`;
+  return `  To reach ${min}:1, change the ${role}${same} to ${parts.join(" or ")}.${palette}`;
 }
 
 function report(fgSide, bgSide, ver, mode, label) {
   const fg = pick(fgSide, ver, mode);
   const bg = pick(bgSide, ver, mode);
   const name = `${label}${fg.arg} on ${bg.arg}`;
-  if (!bg.problem && bg.opacity) bg.problem = "has opacity, so its color depends on what is behind it: check in the browser";
+  let behind = null;
+  if (!bg.problem && bg.alpha) {
+    behind = behindSide && pick(behindSide, ver, mode);
+    if (!behind) bg.problem = "has opacity, so its color depends on what is behind it: add --behind with that color (often bg-background), or check in the browser";
+    else if (behind.problem || behind.alpha) bg.problem = `the --behind color ${behindArg} must be one opaque color the script can read`;
+  }
   const problems = [fg, bg].filter((s) => s.problem).map((s) => `  ${s.arg}: ${s.problem}`);
   if (problems.length) return [`${name}: can't compute`, ...problems];
 
-  const alpha = fg.alpha ?? null;
-  const shown = (fgHex, bgHex) => (alpha === null ? fgHex : mix(fgHex, bgHex, alpha));
-  const r = ratio(shown(fg.hex, bg.hex), bg.hex);
+  // What the eye sees: the background over what's behind it, then the foreground over that.
+  const back = (bgHex) => (bg.alpha ? mix(bgHex, behind.hex, bg.alpha) : bgHex);
+  const front = (fgHex, bgHex) => (fg.alpha ? mix(fgHex, back(bgHex), fg.alpha) : fgHex);
+  const pair = (fgHex, bgHex) => ratio(front(fgHex, bgHex), back(bgHex));
+  const r = pair(fg.hex, bg.hex);
   const lines = [`${name}: ${fmt(r)}, ${verdict(r)}`];
   for (const s of [fg, bg]) {
     if (s.note === null) continue;
     const where = s.variants?.length ? ` (only with ${s.variants.join(":")}:)` : "";
-    const blend = s === fg && alpha !== null ? `, at ${Math.round(alpha * 100)}% opacity shows as ${shown(fg.hex, bg.hex)}` : "";
+    const pct = s.alpha ? Math.round(s.alpha * 100) : null;
+    const blend = !pct ? "" : s === fg ? `, at ${pct}% opacity shows as ${front(fg.hex, bg.hex)}` : `, at ${pct}% opacity over ${behindArg} (${behind.hex}) shows as ${back(bg.hex)}`;
     lines.push(`  ${s.arg}  ${s.hex}${s.note ? "  " + s.note : ""}${blend}${where}`);
   }
   if (fg.variants && bg.variants && fg.variants.join(":") !== bg.variants.join(":")) {
     lines.push(`  Note: the foreground applies with ${variantText(fg.variants)} and the background with ${variantText(bg.variants)}. Check that they show together.`);
   }
   if (r < min) {
-    const fgLighter = lum(shown(fg.hex, bg.hex)) > lum(bg.hex);
-    const fgLine = suggestion("foreground", fg, fgLighter ? "white" : "black", (hex) => ratio(shown(hex, bg.hex), bg.hex));
-    const bgLine = suggestion("background", bg, fgLighter ? "black" : "white", (hex) => ratio(shown(fg.hex, hex), hex));
+    const fgLighter = lum(front(fg.hex, bg.hex)) > lum(back(bg.hex));
+    const fgLine = suggestion("foreground", fg, fgLighter ? "white" : "black", (hex) => pair(hex, bg.hex));
+    const bgLine = suggestion("background", bg, fgLighter ? "black" : "white", (hex) => pair(fg.hex, hex));
     // Light text on a darker background: changing the background is usually the fix, so it comes first.
     if (fgLighter) lines.push(bgLine, fgLine);
     else lines.push(fgLine, ...(bgLine.includes("To reach") ? [bgLine] : []));
@@ -143,13 +161,15 @@ function report(fgSide, bgSide, ver, mode, label) {
 
 const sides = [];
 for (const arg of colors) sides.push(await read(arg));
+const behindSide = behindArg ? await read(behindArg) : null;
 const out = tw ? twHeader(tw) : [];
 for (let i = 0; i < sides.length; i += 2) {
-  const usesTailwind = [sides[i], sides[i + 1]].some((s) => s.found);
+  const trio = [sides[i], sides[i + 1], behindSide].filter(Boolean);
+  const usesTailwind = trio.some((s) => s.found);
   const versions = usesTailwind ? tw.versions : [null];
   for (const ver of versions) {
     // A color that changes in .dark (CSS variables, as in shadcn/ui) gets a light and a dark result.
-    const changes = [sides[i], sides[i + 1]].some((s) => s.found?.some((f) => (f.ver === ver || f.ver === null) && f.dark));
+    const changes = trio.some((s) => s.found?.some((f) => (f.ver === ver || f.ver === null) && f.dark));
     for (const mode of changes ? ["light", "dark"] : [null]) {
       const label = `${versions.length > 1 ? `[v${ver}] ` : ""}${mode ? `[${mode} mode] ` : ""}`;
       out.push(...report(sides[i], sides[i + 1], ver, mode, label));

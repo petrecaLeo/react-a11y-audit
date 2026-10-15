@@ -41,20 +41,34 @@ const NAMED = {
   yellow: "#ffff00", navy: "#000080", blue: "#0000ff", teal: "#008080", aqua: "#00ffff", orange: "#ffa500",
 };
 
-// Colors with an alpha return null: their color depends on what is behind them.
-export function toHex(value) {
+// An optional alpha at the end: "/ 15%", "/ .5" or ", 0.5".
+const ALPHA = "(?:\\s*[/,]\\s*([\\d.]+%?))?\\s*\\)$";
+const RGB = new RegExp("^rgba?\\(\\s*(\\d+)[\\s,]+(\\d+)[\\s,]+(\\d+)" + ALPHA);
+const HSL = new RegExp("^hsla?\\(\\s*([\\d.]+)(?:deg)?[\\s,]+([\\d.]+)%[\\s,]+([\\d.]+)%" + ALPHA);
+// oklch(70.7% 0.022 261.3) as in Tailwind, or oklch(0.707 0.022 261.3 / 15%) as in shadcn/ui.
+const OKLCH = new RegExp("^oklch\\(\\s*([\\d.]+)(%?)\\s+([\\d.]+)\\s+([\\d.]+|none)" + ALPHA);
+const alphaOf = (a) => (a === undefined ? 1 : a.endsWith("%") ? parseFloat(a) / 100 : parseFloat(a));
+
+// { hex, alpha } for a CSS color, or null. alpha is 1 for an opaque color.
+export function parseColor(value) {
   value = value.trim().toLowerCase();
-  if (NAMED[value]) return NAMED[value];
-  if (/^#[0-9a-f]{3}$/.test(value)) return "#" + [...value.slice(1)].map((c) => c + c).join("");
-  if (/^#[0-9a-f]{6}$/.test(value)) return value;
-  const rgb = value.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*\)$/);
-  if (rgb) return "#" + rgb.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
-  const hsl = value.match(/^hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%\s*\)$/);
-  if (hsl) return hslToHex(Number(hsl[1]), Number(hsl[2]) / 100, Number(hsl[3]) / 100);
-  // oklch(70.7% 0.022 261.3) as in Tailwind, or oklch(0.707 0.022 261.3) as in shadcn/ui.
-  const ok = value.match(/^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+|none)\s*\)$/);
-  if (ok) return oklchToHex(Number(ok[1]) / (ok[2] ? 100 : 1), Number(ok[3]), ok[4] === "none" ? 0 : Number(ok[4]));
+  if (NAMED[value]) return { hex: NAMED[value], alpha: 1 };
+  if (/^#[0-9a-f]{3}$/.test(value)) return { hex: "#" + [...value.slice(1)].map((c) => c + c).join(""), alpha: 1 };
+  if (/^#[0-9a-f]{6}$/.test(value)) return { hex: value, alpha: 1 };
+  if (/^#[0-9a-f]{8}$/.test(value)) return { hex: value.slice(0, 7), alpha: parseInt(value.slice(7), 16) / 255 };
+  const rgb = value.match(RGB);
+  if (rgb) return { hex: "#" + rgb.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, "0")).join(""), alpha: alphaOf(rgb[4]) };
+  const hsl = value.match(HSL);
+  if (hsl) return { hex: hslToHex(Number(hsl[1]), Number(hsl[2]) / 100, Number(hsl[3]) / 100), alpha: alphaOf(hsl[4]) };
+  const ok = value.match(OKLCH);
+  if (ok) return { hex: oklchToHex(Number(ok[1]) / (ok[2] ? 100 : 1), Number(ok[3]), ok[4] === "none" ? 0 : Number(ok[4])), alpha: alphaOf(ok[5]) };
   return null;
+}
+
+// Opaque colors only: a color with an alpha depends on what is behind it.
+export function toHex(value) {
+  const color = parseColor(value);
+  return color && color.alpha === 1 ? color.hex : null;
 }
 
 function hslToHex(h, s, l) {
@@ -103,13 +117,18 @@ function substitute(value, vars, mode, depth = 0) {
 }
 
 // A color from the project, following var(--x) to :root (light) and .dark. v3 configs often write hsl(var(--x) / <alpha-value>).
+// `dark` is null when .dark doesn't change the color, and has no hex when its .dark value can't be read.
 function projectColor(raw, vars, from) {
   raw = raw.trim();
-  const read = (mode) => toHex(substitute(raw, vars, mode).replace(/\s*\/\s*<alpha-value>/, ""));
-  const light = read("light");
-  const dark = read("dark");
+  const text = (mode) => substitute(raw, vars, mode).replace(/\s*\/\s*<alpha-value>/, "");
+  const light = parseColor(text("light"));
+  const dark = parseColor(text("dark"));
   const via = raw.match(/var\(\s*--([\w-]+)/)?.[1] ?? null;
-  return { hex: light, dark: dark && dark !== light ? dark : null, raw, from, via };
+  const changes = text("dark") !== text("light");
+  return {
+    hex: light?.hex ?? null, alpha: light?.alpha ?? 1, raw, from, via,
+    dark: changes ? { hex: dark?.hex ?? null, alpha: dark?.alpha ?? 1, raw: text("dark") } : null,
+  };
 }
 
 // v4: --color-* variables inside @theme blocks of the project's CSS files.
@@ -205,8 +224,8 @@ export function resolveClass(cls, tw) {
   if (!p || (/^\[\d/.test(p.color) && !/^\[#/.test(p.color))) return { cls, problem: "not a color utility" };
   const r = { cls, prefix: p.prefix, color: p.color, variants: p.variants, opacity: p.opacity, alpha: toAlpha(p.opacity), found: [] };
   if (p.color.startsWith("[")) {
-    const { hex, dark, via } = projectColor(p.color.slice(1, -1).replace(/_/g, " "), tw.vars, null);
-    r.found.push({ ver: null, hex, dark, note: hex ? `arbitrary value${via ? `, --${via} in :root` : ""}` : "arbitrary value this script can't resolve: check in the browser" });
+    const { hex, alpha, dark, via } = projectColor(p.color.slice(1, -1).replace(/_/g, " "), tw.vars, null);
+    r.found.push({ ver: null, hex, alpha, dark, note: hex ? `arbitrary value${via ? `, --${via} in :root` : ""}` : "arbitrary value this script can't resolve: check in the browser" });
     return r;
   }
   if (NOT_COLOR.test(p.color)) return { cls, problem: "not a color utility" };
@@ -214,7 +233,7 @@ export function resolveClass(cls, tw) {
   for (const ver of tw.versions) {
     const own = tw.custom[ver].colors[p.color];
     if (own) {
-      r.found.push({ ver, hex: own.hex, dark: own.dark, note: own.hex ? `project color, ${own.from}${own.via ? `, --${own.via} in :root` : ""}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser` });
+      r.found.push({ ver, hex: own.hex, alpha: own.alpha, dark: own.dark, note: own.hex ? `project color, ${own.from}${own.via ? `, --${own.via} in :root` : ""}` : `project color ${own.raw} in ${own.from} that this script can't resolve: check in the browser` });
     } else if (!tw.custom[ver].resetsDefaults && palettes[`v${ver}`][p.color]) {
       const clipped = ver === 4 && palettes.v4_clipped.includes(p.color) ? ", outside sRGB, so the ratio is close but not exact" : "";
       r.found.push({ ver, hex: palettes[`v${ver}`][p.color], note: `Tailwind v${ver} default${clipped}` });
@@ -263,8 +282,9 @@ async function main() {
     const alpha = r.opacity ? ` at ${opacityLabel(r.opacity)} opacity: blend it with the background before computing contrast, or check in the browser` : "";
     for (const f of r.found) {
       const label = f.ver && tw.versions.length > 1 ? ` [v${f.ver}]` : "";
-      const dark = f.dark ? ` (${f.dark} in .dark)` : "";
-      console.log(`${cls}${label}  ${f.hex ?? "?"}  ${f.note}${dark}${f.missing ? "" : alpha + where}`);
+      const pct = (a) => (a < 1 ? ` at ${Math.round(a * 100)}%` : "");
+      const dark = f.dark ? ` (${f.dark.hex ? f.dark.hex + pct(f.dark.alpha) : `${f.dark.raw}, which this script can't resolve,`} in .dark)` : "";
+      console.log(`${cls}${label}  ${f.hex ?? "?"}${pct(f.alpha ?? 1)}  ${f.note}${dark}${f.missing ? "" : alpha + where}`);
     }
   }
 }

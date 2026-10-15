@@ -86,7 +86,7 @@ Each finding comes with a severity (critical, serious, moderate, minor), the WCA
 ## What it doesn't do
 
 - **It's for the web.** React Native is out: its checks are about HTML, ARIA and the browser.
-- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component or runtime state goes to a "Check in the browser" list instead of being guessed. The same goes for Tailwind colors the script can't resolve: CSS variables outside `:root` and `.dark`, a background with opacity and `tailwind.config.ts`.
+- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component or runtime state goes to a "Check in the browser" list instead of being guessed. The same goes for Tailwind colors the script can't resolve: CSS variables outside `:root` and `.dark`, a transparent background when the color behind it is unknown, and `tailwind.config.ts`.
 - **It never says a component "is accessible".** Code review and automated tools cover only part of WCAG. Test with the keyboard and a screen reader too.
 - **It doesn't change colors on its own.** A color is often a design decision the developer can't change alone. The skill computes the ratio and a color that passes, preferring a shade the project already has (`text-gray-500` instead of a new hex), then asks: apply it, keep it and flag it to design, or change the theme token. If colors belong to the design team, it writes a short message you can paste to them.
 - **It doesn't guess the scope.** If you don't say what to audit, it asks first: the files changed on your branch, a pull request, a folder or component, or the whole repository. One component and a whole repository are very different jobs, in time and in tokens.
@@ -129,21 +129,21 @@ A skill only helps if it runs when it should, stays out of the way when it shoul
 
 | # | Request | Should trigger | Triggered |
 |---|---|---|---|
-| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 27 of 27 |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 29 of 29 |
-| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 27 of 27 |
-| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 21 |
-| 5 | "Convert this component to TypeScript" | no | 1 of 27 |
-| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 15 of 15 |
-| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 23 of 23 |
-| 8 | "Revisa esse banner? As cores são do time de design" | yes | 15 of 15 |
-| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 14 of 14 |
-| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 10 of 10 |
-| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 2 |
-| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 2 |
-| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 2 of 2 |
+| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 29 of 29 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 34 of 34 |
+| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 29 of 29 |
+| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 23 |
+| 5 | "Convert this component to TypeScript" | no | 1 of 29 |
+| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 17 of 17 |
+| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 25 of 25 |
+| 8 | "Revisa esse banner? As cores são do time de design" | yes | 17 of 17 |
+| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 16 of 16 |
+| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 12 of 12 |
+| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 4 |
+| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 4 |
+| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 4 of 4 |
 
-Right in 213 of 214 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 even has the word "focus". It stayed out every time, except once in case 5's 27 runs.
+Right in 242 of 243 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 even has the word "focus". It stayed out every time, except once in case 5's 29 runs.
 
 ### Is it better than Claude without it?
 
@@ -159,9 +159,21 @@ Each case ran with and without the skill (twice each, case 9 four times), with t
 | 8 | 1 of 2 | 0 of 2 | Without the skill, there was no message ready to send to the design team. |
 | 9 | 4 of 4 | 0 of 4 | Without the skill, Claude used Tailwind v3 colors (`#9ca3af`) in a v4 project and estimated the ratios ("about 2.5:1"). One answer didn't find the project color in `@theme`. |
 
-Cases 1 to 8 are from the last full comparison. Case 9 is from the round after the script change (before it, 1 of 2: see item 7 below). The failures in cases 1, 2 and 8 passed when the same reports were graded again, asking the judge for the reason behind each item: the judge isn't perfect either. After the change, cases 1, 3 and 8 ran twice more: all 6 reports passed, 2 of them only on that second grading. Cases 10 to 13 came later and only ran with the skill: case 10 passed 3 of 3 after the changes in item 8 below, and case 13 didn't invent a problem in 2 of 2. Then cases 1 to 9 ran twice more with all the changes: the judge failed 4 reports, 3 passed on the second grading, and the one in case 3 led to item 9 below.
+Cases 1 to 8 are from the last full comparison. Case 9 is from the round after the script change (before it, 1 of 2: see item 7 below). The failures in cases 1, 2 and 8 passed when the same reports were graded again, asking the judge for the reason behind each item: the judge isn't perfect either. After the change, cases 1, 3 and 8 ran twice more: all 6 reports passed, 2 of them only on that second grading. Cases 10 to 13 came later and only ran with the skill: case 10 passed 3 of 3 after the changes in item 8 below, and case 13 didn't invent a problem in 2 of 2. Then cases 1 to 9 ran twice more with all the changes: the judge failed 4 reports, 3 passed on the second grading, and the one in case 3 led to item 9 below. After the real project test below, all 13 cases ran twice again: 23 of 26 passed at once. Of the other 3, one passed on the second grading, one in case 2 was real (an inline style reported as a finding) and passed 3 of 3 after a fix, and one in case 1 is debatable: a suggestion about the favorite state, placed under "Check in the browser".
 
 Claude alone already finds most problems. What the skill adds is how it handles them: contrast computed instead of estimated, colors left to whoever decides them, the scope question, the map from scanner results to files, and the message for design.
+
+### On a real project
+
+The cases above were written for the skill, so they can't show everything. To check it on code nobody wrote for it, the skill audited [shadcn-admin](https://github.com/satnaing/shadcn-admin) (15.7k stars; React 19, Vite, shadcn/ui, Tailwind v4; commit `e16c87f`). axe 4.11 ran on the same pages in light and dark mode, with the WCAG A and AA rules, and found 2 problems: the "rows per page" select has no name (tasks and users pages), and the "suspended" badge is 4.0:1. The skill read the code of 4 pages: tasks, users, settings and sign-in.
+
+| | First run | After the fixes in item 10 |
+|---|---|---|
+| axe's problems found | 0 of 2 | 2 of 2 (badge at 4.01:1) |
+| Pages with contrast computed | 3 of 4 | 4 of 4 |
+| False findings | 4 | none of the 4 came back; the 4 new findings checked by hand were real |
+
+The skill also found what axe can't see on a loaded page: radio groups with no name in a closed drawer, the settings menu on mobile, input borders at 1.23:1 (1.4.11), focus that disappears in Windows high contrast mode, a skipped heading level, a link with no visual cue and a card title that isn't a heading. Some severities are higher than most auditors would give, like "Serious" for a table without a name.
 
 ### What the tests caught along the way
 
@@ -174,6 +186,7 @@ Claude alone already finds most problems. What the skill adds is how it handles 
 7. **Script blocked, colors guessed.** In case 9, 3 of 8 answers built the command with something before `node` (`ls; …` or a variable). The tests allow only commands that start with `node`, so it was blocked, and Claude used Tailwind v3 colors from memory in a v4 project. Many people allow only `node` in their own setup too. Now one script, `contrast.mjs`, takes the classes and gives the ratio, and the skill says to run it as a command of its own, starting with `node`: 4 of 4 after the change.
 8. **Colors inside wrappers skipped.** In case 10, the description color comes from `components/ui/dialog.tsx`. Claude read that file but computed only the colors written in `DeleteAccount.tsx`, so it missed the dark mode failure in 2 of 2. With a rule to include the wrappers' colors, 1 of 2 still left the pair under "Check in the browser" without computing it. A last check before sending (a color pair left there goes through the script first) brought it to 3 of 3.
 9. **A scanner note that hid a finding.** A new line said to read only the scanner's failures, and one answer in case 3 then called the cart link's missing name "optional" because Lighthouse didn't flag it. The line now says a problem seen in the code is still a finding: 3 of 3.
+10. **The real project.** On shadcn-admin, the first run missed both of axe's problems: it didn't read the shared pagination, and it sent the badge on a transparent background to the browser list. On one page it read files with `cat`, which was blocked, and gave up on the script too. It also had 4 false findings: `autoComplete` asked for in a form where an admin edits other people, a label that the form wrapper already links, and two lucide icons that are already hidden. Now the script takes `--behind` for transparent backgrounds and reads theme colors with alpha, and the skill reads every shared component a page renders, reads files with the file tools, and moves anything it would hedge ("may", "check first") to the browser list.
 
 The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test.
 
