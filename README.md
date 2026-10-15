@@ -143,23 +143,23 @@ A skill only helps if it runs when it should, stays out of the way when it shoul
 | 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 6 |
 | 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 8 of 8 |
 
-Right in 295 of 296 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 even has the word "focus". It stayed out every time, except once in case 5's 31 runs.
+Right in 295 of 296 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 also uses the word "focus". It stayed out every time, except once in case 5's 31 runs.
 
 ### Is it better than Claude without it?
 
-Each case ran with and without the skill (twice each, case 9 four times), with the same requests, graded by the same LLM judge (Claude Sonnet 5.5) against the same criteria.
+Same requests and the same LLM judge (Claude Sonnet 5.5) on both sides. The "with" column is version 1.0.0. The "without" column is from the last round run without the skill (twice per case, case 9 four times), graded against the criteria of that time.
 
 | # | With the skill | Without | What made the difference |
 |---|---|---|---|
-| 1 | 1 of 2 | 0 of 2 | Without the skill, Claude changed the colors in its fix without asking, estimated the contrast ("about 3.3:1") and added findings the code doesn't have. |
-| 2 | 1 of 2 | 0 of 2 | Without the skill, it reported the e-mail validation rule as an accessibility finding. |
+| 1 | 2 of 2 | 0 of 2 | Without the skill, Claude changed the colors in its fix without asking, estimated the contrast ("about 3.3:1") and added findings the code doesn't have. |
+| 2 | 2 of 2 | 0 of 2 | Without the skill, it reported the e-mail validation rule as an accessibility finding. |
 | 3 | 2 of 2 | 0 of 2 | Without the skill, it changed the cart color in the fixed code without asking. |
 | 6 | 2 of 2 | 0 of 2 | Without the skill, it started reading the whole repository instead of asking what to audit. |
 | 7 | 2 of 2 | 0 of 2 | Both found the source of each problem. Without the skill, Claude proposed patching the chat vendor's iframe from the project's code. |
-| 8 | 1 of 2 | 0 of 2 | Without the skill, there was no message ready to send to the design team. |
-| 9 | 4 of 4 | 0 of 4 | Without the skill, Claude used Tailwind v3 colors (`#9ca3af`) in a v4 project and estimated the ratios ("about 2.5:1"). One answer didn't find the project color in `@theme`. |
+| 8 | 2 of 2 | 0 of 2 | Without the skill, there was no message ready to send to the design team. |
+| 9 | 2 of 2 | 0 of 4 | Without the skill, Claude used Tailwind v3 colors (`#9ca3af`) in a v4 project and estimated the ratios ("about 2.5:1"). One answer didn't find the project color in `@theme`. |
 
-Cases 1 to 8 are from the last full comparison. Case 9 is from the round after the script change (before it, 1 of 2: see item 7 below). The failures in cases 1, 2 and 8 passed when the same reports were graded again, asking the judge for the reason behind each item: the judge isn't perfect either. After the change, cases 1, 3 and 8 ran twice more: all 6 reports passed, 2 of them only on that second grading. Cases 10 to 13 came later and only ran with the skill: case 10 passed 3 of 3 after the changes in item 8 below, and case 13 didn't invent a problem in 2 of 2. Then cases 1 to 9 ran twice more with all the changes: the judge failed 4 reports, 3 passed on the second grading, and the one in case 3 led to item 9 below. After the real project test below, all 13 cases ran twice again: 23 of 26 passed at once. Of the other 3, one passed on the second grading, one in case 2 was real (an inline style reported as a finding) and passed 3 of 3 after a fix, and one in case 1 is debatable: a suggestion about the favorite state, placed under "Check in the browser". With one judge per criterion and clearer criteria (item 11 below), the last round passed 26 of 26 at once, with no second grading.
+In earlier versions, some reports failed. Each failure was graded again with the reason for each item, so the fix went to the right place: the skill or the test. "What testing changed" below lists them.
 
 Claude alone already finds most problems. What the skill adds is how it handles them: contrast computed instead of estimated, colors left to whoever decides them, the scope question, the map from scanner results to files, and the message for design.
 
@@ -176,12 +176,12 @@ The cases above were written for the skill, so they can't show everything. To ch
 
 The skill also found what axe can't see on a loaded page: radio groups with no name in a closed drawer, the settings menu on mobile, input borders at 1.23:1 (1.4.11), focus that disappears in Windows high contrast mode, a skipped heading level, a link with no visual cue and a card title that isn't a heading.
 
-### What the tests caught along the way
+### What testing changed
 
 1. **Contrast estimated.** One answer suggested a color "about 7.9:1" when it was 7.81:1. Now every ratio, including suggested colors, is computed with the skill's `scripts/contrast.mjs`.
 2. **Invented and off-topic findings.** A "Critical" for a favorite state the component never receives, an e-mail validation rule reported as an accessibility problem, and "the cards aren't a list" when the list lives in a parent that wasn't in the code. Now the skill reports only accessibility problems it can see in the code.
 3. **Half-translated labels.** Portuguese answers came with "Fix" and "Check in the browser" in English. The template now lists the Portuguese terms, the report is checked before sending, and the label became a phrase ("How to fix"), which gets translated more reliably than the single word.
-4. **Colors changed without asking** and **a vague request audited without asking**, both on purpose in the first version. They became questions after feedback, and cases 3 and 6 check them.
+4. **Colors changed without asking** and **a vague request audited without asking.** Early versions did both. Both are now questions, and cases 3 and 6 check them.
 5. **Patching a vendor's widget.** For the chat iframe, one answer offered a `MutationObserver` that edits the vendor's iframe. Now the skill points to the vendor's settings and says why a patch breaks.
 6. **Answering in the page's language.** In case 7 the request was in English, but 3 of 4 answers came in Portuguese, the language of the page. A first rule ("the language of the user's own words") didn't help: 2 of 2 still in Portuguese. An explicit one, with the example "a request written in English gets an English report, even when the page is in Portuguese", did: 2 of 2 in English. In later rounds, 7 of 9 came in English. Asking Claude to note the request's language as the very first step, before reading any file, brought it to 6 of 6.
 7. **Script blocked, colors guessed.** In case 9, 3 of 8 answers built the command with something before `node` (`ls; …` or a variable). The tests allow only commands that start with `node`, so it was blocked, and Claude used Tailwind v3 colors from memory in a v4 project. Many people allow only `node` in their own setup too. Now one script, `contrast.mjs`, takes the classes and gives the ratio, and the skill says to run it as a command of its own, starting with `node`: 4 of 4 after the change.

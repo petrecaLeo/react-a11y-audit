@@ -143,23 +143,23 @@ Uma skill só ajuda se roda quando deve, fica quieta quando não deve e se sai m
 | 12 | "Meu campo de busca perde o foco a cada letra que digito. Por quê?" | não | 0 de 6 |
 | 13 | "Audita a acessibilidade desse formulário" (um formulário sem problema real) | sim | 8 de 8 |
 
-Certo em 295 de 296 execuções. Os casos 4, 5 e 12 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e o caso 12 ainda tem a palavra "foco". Ela ficou quieta todas as vezes, menos uma nas 31 execuções do caso 5.
+Certo em 295 de 296 execuções. Os casos 4, 5 e 12 têm problemas de acessibilidade no código, então a skill tinha motivo para disparar, e o caso 12 também usa a palavra "foco". Ela ficou quieta todas as vezes, menos uma nas 31 execuções do caso 5.
 
 ### Ela é melhor que o Claude sem ela?
 
-Cada caso rodou com e sem a skill (duas vezes cada, o caso 9 quatro vezes), com os mesmos pedidos, e o mesmo juiz (Claude Sonnet 5.5) deu a nota com os mesmos critérios.
+Os dois lados tiveram os mesmos pedidos e o mesmo juiz (Claude Sonnet 5.5). A coluna "com" é a versão 1.0.0. A coluna "sem" é da última rodada feita sem a skill (duas vezes por caso, o caso 9 quatro vezes), avaliada com os critérios daquela época.
 
 | # | Com a skill | Sem | O que fez a diferença |
 |---|---|---|---|
-| 1 | 1 de 2 | 0 de 2 | Sem a skill, o Claude trocou as cores na correção sem perguntar, estimou o contraste ("about 3.3:1") e incluiu itens que o código não tem. |
-| 2 | 1 de 2 | 0 de 2 | Sem a skill, ele apontou a regra de validação do e-mail como problema de acessibilidade. |
+| 1 | 2 de 2 | 0 de 2 | Sem a skill, o Claude trocou as cores na correção sem perguntar, estimou o contraste ("about 3.3:1") e incluiu itens que o código não tem. |
+| 2 | 2 de 2 | 0 de 2 | Sem a skill, ele apontou a regra de validação do e-mail como problema de acessibilidade. |
 | 3 | 2 de 2 | 0 de 2 | Sem a skill, ele trocou a cor do carrinho no código corrigido sem perguntar. |
 | 6 | 2 de 2 | 0 de 2 | Sem a skill, ele saiu lendo o repositório inteiro em vez de perguntar o que auditar. |
 | 7 | 2 de 2 | 0 de 2 | Os dois acharam a origem de cada problema. Sem a skill, o Claude propôs remendar o iframe do fornecedor do chat pelo código do projeto. |
-| 8 | 1 de 2 | 0 de 2 | Sem a skill, não veio um recado pronto para o time de design. |
-| 9 | 4 de 4 | 0 de 4 | Sem a skill, o Claude usou as cores do Tailwind v3 (`#9ca3af`) num projeto v4 e estimou as razões ("about 2.5:1"). Uma resposta não achou a cor do projeto no `@theme`. |
+| 8 | 2 de 2 | 0 de 2 | Sem a skill, não veio um recado pronto para o time de design. |
+| 9 | 2 de 2 | 0 de 4 | Sem a skill, o Claude usou as cores do Tailwind v3 (`#9ca3af`) num projeto v4 e estimou as razões ("about 2.5:1"). Uma resposta não achou a cor do projeto no `@theme`. |
 
-Os casos 1 a 8 são da última comparação completa. O caso 9 é da rodada depois da mudança no script (antes dela, 1 de 2: veja o item 7 abaixo). As falhas nos casos 1, 2 e 8 passaram quando os mesmos relatórios foram avaliados de novo, pedindo ao juiz o motivo de cada item: o juiz também erra. Depois da mudança, os casos 1, 3 e 8 rodaram mais duas vezes: os 6 relatórios passaram, 2 deles só nessa segunda avaliação. Os casos 10 a 13 vieram depois e só rodaram com a skill: o caso 10 passou em 3 de 3 depois das mudanças do item 8 abaixo, e o caso 13 não inventou problema em 2 de 2. Depois, os casos 1 a 9 rodaram mais duas vezes com todas as mudanças: o juiz reprovou 4 relatórios, 3 passaram na segunda avaliação, e o do caso 3 levou ao item 9 abaixo. Depois do teste no projeto real (abaixo), os 13 casos rodaram mais duas vezes: 23 de 26 passaram de primeira. Dos outros 3, um passou na segunda avaliação, um no caso 2 era real (um estilo inline apontado como achado) e passou em 3 de 3 depois de uma correção, e um no caso 1 é discutível: uma sugestão sobre o estado de favorito, colocada em "Conferir no navegador". Com um juiz por critério e critérios mais claros (item 11 abaixo), a última rodada passou em 26 de 26 de primeira, sem segunda avaliação.
+Nas versões anteriores, alguns relatórios reprovaram. Cada falha foi avaliada de novo com o motivo de cada item, para a correção ir para o lugar certo: a skill ou o teste. "O que os testes mudaram", abaixo, lista essas falhas.
 
 O Claude sozinho já acha a maior parte dos problemas. O que a skill acrescenta é o jeito de lidar com eles: contraste calculado em vez de estimado, cor deixada para quem decide, a pergunta de escopo, o mapa do resultado do scanner até os arquivos e o recado para o design.
 
@@ -176,12 +176,12 @@ Os casos acima foram escritos para a skill, então não mostram tudo. Para testa
 
 A skill também achou o que o axe não vê numa página carregada: grupos de rádio sem nome num drawer fechado, o menu de configurações no celular, bordas de campo com 1,23:1 (1.4.11), foco que some no modo de alto contraste do Windows, um nível de heading pulado, um link sem nenhum sinal visual e um título de card que não é heading.
 
-### O que os testes pegaram no caminho
+### O que os testes mudaram
 
 1. **Contraste estimado.** Uma resposta sugeriu uma cor "about 7.9:1" quando o valor era 7,81:1. Agora toda razão, inclusive das cores sugeridas, é calculada com o script `scripts/contrast.mjs` da skill.
 2. **Itens inventados e fora do tema.** Um "Critical" para um estado de favorito que o componente nem recebe, uma regra de validação de e-mail apontada como problema de acessibilidade, e "os cards não estão numa lista" quando a lista fica num componente pai que não estava no código. Agora a skill só aponta problemas de acessibilidade que ela vê no código.
 3. **Rótulos traduzidos pela metade.** Respostas em português vinham com "Fix" e "Check in the browser" em inglês. O modelo do relatório agora lista os termos em português, o relatório é conferido antes de enviar, e o rótulo virou uma frase ("How to fix"), que o modelo traduz com mais confiança do que a palavra solta.
-4. **Cor trocada sem perguntar** e **pedido vago auditado sem perguntar**, as duas de propósito na primeira versão. Viraram perguntas depois de feedback, e os casos 3 e 6 conferem isso.
+4. **Cor trocada sem perguntar** e **pedido vago auditado sem perguntar.** As primeiras versões faziam as duas coisas. Hoje as duas viraram perguntas, e os casos 3 e 6 conferem isso.
 5. **Remendo no widget do fornecedor.** Para o iframe do chat, uma resposta ofereceu um `MutationObserver` que mexe no iframe do fornecedor. Agora a skill aponta para a configuração do fornecedor e explica por que um remendo quebra.
 6. **Resposta na língua da página.** No caso 7, o pedido foi em inglês, mas 3 de 4 respostas vieram em português, a língua da página. Uma primeira regra ("a língua das palavras de quem pediu") não resolveu: 2 de 2 ainda em português. Uma regra explícita, com o exemplo "pedido em inglês recebe relatório em inglês, mesmo com a página em português", resolveu: 2 de 2 em inglês. Nas rodadas seguintes, 7 de 9 vieram em inglês. Pedir ao Claude para anotar o idioma do pedido logo no primeiro passo, antes de ler qualquer arquivo, levou a 6 de 6.
 7. **Script bloqueado, cor chutada.** No caso 9, 3 de 8 respostas montaram o comando com algo antes do `node` (`ls; …` ou uma variável). Os testes só liberam comandos que começam com `node`, então o comando foi bloqueado, e o Claude usou de memória as cores do Tailwind v3 num projeto v4. Muita gente também só libera o `node` no dia a dia. Agora um script só, o `contrast.mjs`, recebe as classes e devolve a razão, e a skill pede para rodá-lo como um comando separado, começando com `node`: 4 de 4 depois da mudança.
