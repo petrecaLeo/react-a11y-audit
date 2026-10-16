@@ -72,12 +72,12 @@ Cinco regras e 51 elementos se resumiram a três arquivos do projeto, mais um wi
 ## O que ela confere
 
 - **Semântica:** `div` clicável, link sem `href`, títulos, landmarks, listas e tabelas
-- **Nomes:** botão só com ícone, `alt`, SVG, link vago, `aria-label` diferente do texto visível
+- **Nomes:** botão só com ícone, `alt`, SVG, link vago, diálogos, `aria-label` diferente do texto visível
 - **Formulários:** rótulos, erro ligado ao campo, grupos, `autoComplete`, colar bloqueado
-- **Teclado e foco:** outline removido, `tabIndex`, menu que só abre com o mouse, modais, widgets próprios
+- **Teclado e foco:** outline removido, `tabIndex`, menu que só abre com o mouse, modais, widgets próprios, caixas com rolagem como blocos de código
 - **ARIA:** `aria-hidden` em elemento focável, ids que faltam ou se repetem, valores inválidos
 - **Conteúdo dinâmico:** mensagens de status, live regions, carregamento, troca de rota
-- **Cor:** contraste de texto e de interface (calculado com um script, nunca estimado), cor como único sinal. As classes do Tailwind viram cores de verdade antes, na v3 e na v4, inclusive as cores próprias do projeto no `@theme` ou no `tailwind.config.js` e as variáveis de CSS em `:root` e `.dark` (como no shadcn/ui), com um resultado para cada modo. Para corrigir, ela oferece um tom que o projeto já tem antes de um hex novo
+- **Cor:** contraste de texto e de interface (calculado com um script, nunca estimado), cor como único sinal. As classes do Tailwind viram cores de verdade antes, na v3 e na v4, inclusive as cores próprias do projeto no `@theme` ou no `tailwind.config.js` e as variáveis de CSS em `:root` e `.dark` (como no shadcn/ui), com um resultado para cada modo. As cores definidas no CSS do projeto também entram (links do `.prose`, código no texto). Para corrigir, ela oferece um tom que o projeto já tem antes de um hex novo
 - **Tamanho de alvo, movimento e mídia:** alvos de 24×24 px, ação só com arrastar, autoplay, legendas
 - **Página:** `lang`, título da página, link para pular ao conteúdo, zoom bloqueado
 
@@ -86,7 +86,7 @@ Cada problema vem com a gravidade (crítico, sério, moderado, menor), o critér
 ## O que ela não faz
 
 - **Ela é para a web.** React Native fica de fora: as checagens são de HTML, ARIA e navegador.
-- **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado. O mesmo vale para as cores do Tailwind que o script não resolve: variáveis de CSS fora de `:root` e `.dark`, fundo transparente quando a cor de trás é desconhecida, e `tailwind.config.ts`.
+- **Ela lê o código, não abre a página.** O que depende de um CSS que ela não vê, de um tema, de um componente de terceiros cujo código ela não consegue ler ou do estado em tempo de execução vai para uma lista "Conferir no navegador", em vez de ser chutado. O mesmo vale para as cores do Tailwind que o script não resolve: variáveis de CSS fora de `:root` e `.dark`, fundo transparente quando a cor de trás é desconhecida, e `tailwind.config.ts`.
 - **Ela nunca diz que um componente "está acessível".** Revisão de código e ferramentas automáticas cobrem só parte do WCAG. Teste também com o teclado e com um leitor de tela.
 - **Ela não muda cor sozinha.** Cor muitas vezes é decisão de design, e quem programa não pode mudar sozinho. A skill calcula a razão e uma cor que passa, de preferência um tom que o projeto já tem (`text-gray-500` em vez de um hex novo), e pergunta: aplicar, manter e avisar o design, ou mudar o token do tema. Se as cores são do time de design, ela escreve um recado curto para você mandar para eles.
 - **Ela não chuta o escopo.** Se você não diz o que auditar, ela pergunta antes: os arquivos alterados na sua branch, um pull request, uma pasta ou componente, ou o repositório inteiro. Um componente e um repositório inteiro são trabalhos bem diferentes, em tempo e em tokens.
@@ -176,6 +176,18 @@ Os casos acima foram escritos para a skill, então não mostram tudo. Para testa
 
 A skill também achou o que o axe não vê numa página carregada: grupos de rádio sem nome num drawer fechado, o menu de configurações no celular, bordas de campo com 1,23:1 (1.4.11), foco que some no modo de alto contraste do Windows, um nível de heading pulado, um link sem nenhum sinal visual e um título de card que não é heading.
 
+**Um blog em Next.js.** O segundo projeto é o [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) (10,5 mil estrelas; Next.js 15 com App Router, Tailwind v4, Headless UI e o pacote pliny; commit `b45bef6`). O axe rodou em 7 páginas, no modo claro e no escuro, no celular com o menu aberto e com o menu de tema aberto. A skill auditou três partes pelo código (a página inicial, o header com o menu mobile e uma página de post) e mapeou o resultado do axe de uma página de tag. Nessas três partes, o axe achou 6 problemas, contando cada regra uma vez por parte: links e tags rosa com 3,58:1, tags com menos de 24px (2.5.8) na página inicial e no post, blocos de código que não rolam pelo teclado e, só com o menu de tema aberto, papéis de rádio dentro de um menu. Na página de post, as falhas de contraste incluem o código no meio do texto com 4,40:1 no modo escuro.
+
+| | Primeira rodada | Depois das correções do item 13 (2 execuções) |
+|---|---|---|
+| Problemas do axe achados pelo código | 3 de 6 | 5 de 6 e 6 de 6 |
+| Cores definidas no CSS (links do `.prose`, código no texto) | iam para a lista do navegador | calculadas: 3,58:1 e 4,40:1, como o axe mediu |
+| Componentes de pacote (formulário de newsletter e bloco de código do pliny) | não lidos | lidos: o botão com 3,58:1, erros que não são anunciados, um botão de copiar que só aparece com o mouse em cima |
+| Link para pular ao conteúdo quando a página tem `<main>` | Moderate | Minor (boa prática) |
+| Resultado do axe mapeado no código (página de tag) | 2 de 2, contando 15 elementos de 16 | 2 de 2, com a contagem certa |
+
+Pelo código, ela também achou o que o axe não aponta numa página carregada: links do menu mobile com contorno de foco de 0px (`outline outline-0` vence o estilo de foco global), o diálogo do menu mobile sem nome e um botão de menu sem `aria-expanded`.
+
 ### O que os testes mudaram
 
 1. **Contraste estimado.** Uma resposta sugeriu uma cor "about 7.9:1" quando o valor era 7,81:1. Agora toda razão, inclusive das cores sugeridas, é calculada com o script `scripts/contrast.mjs` da skill.
@@ -190,6 +202,7 @@ A skill também achou o que o axe não vê numa página carregada: grupos de rá
 10. **O projeto real.** No shadcn-admin, a primeira rodada perdeu os dois problemas do axe: não leu a paginação compartilhada e mandou para a lista do navegador o badge com fundo transparente. Numa das páginas, leu arquivos com `cat`, que foi bloqueado, e desistiu do script também. Também teve 4 achados falsos: `autoComplete` pedido num formulário em que um admin edita outras pessoas, um label que o wrapper do formulário já liga, e dois ícones do lucide que já são escondidos. Agora o script aceita `--behind` para fundos transparentes e lê cores do tema com transparência, e a skill lê todo componente compartilhado que a página renderiza, lê arquivos com as ferramentas de arquivo e manda para a lista do navegador o que ela escreveria com ressalva ("pode", "confira antes").
 11. **O juiz lia errado os próprios critérios.** Com todos os itens num critério só, o juiz reprovava de 20% a 30% dos relatórios certos nos casos 1, 2 e 8, sem dizer por quê. Com um juiz por item, a falha passou a dizer o item, e os critérios se mostraram abertos a outra leitura: o estado de favorito, dado como exemplo de achado inventado, pegava também uma sugestão opcional; "sem bloco de código" no recado para o design foi lido como regra para a resposta inteira; e uma pergunta dentro desse recado parecia uma pergunta ao usuário. Com critérios mais claros, a última rodada passou em 26 de 26.
 12. **Severidade, e um label ao lado do select.** No projeto real, boas práticas vinham como "Serious" (tabela sem nome, o mesmo nome em toda linha). O checklist agora lista esses itens como Minor no máximo. Numa rodada, a skill leu a paginação mas não pegou o select: o texto "Rows per page" fica ao lado sem ser o label dele, e um select do Radix não pega o nome do valor que mostra. O checklist agora diz isso, e as duas páginas voltaram a achar, como Critical, igual ao axe.
+13. **O blog em Next.js.** A primeira rodada mandou as cores definidas no CSS (links do `.prose`, código no texto) para a lista do navegador, não abriu os componentes de pacote que a página renderiza (o formulário de newsletter e o bloco de código do pliny) e não viu que tags de 20px de altura numa linha que quebra reprovam no 2.5.8. Também não pegou o nome de um diálogo do Headless UI, porque o checklist só cobria cópias locais como o shadcn/ui, e deu Moderate para a falta de link de pular ao conteúdo em páginas com `<main>`, que já atende o 2.4.1. Agora a skill lê o CSS global e os componentes de pacote que consegue ler, o `contrast.mjs` aceita `var(--x)` como está escrito no CSS, e o checklist cobre links de texto como alvo, diálogos e widgets aninhados de bibliotecas headless, caixas com rolagem sem nada focável e o link de pular como boa prática quando há `<main>`. Na última rodada, o caso do header não pegou o `outline-0` do menu mobile em 2 de 2 execuções, e uma execução apontou um ícone dentro de um botão que já tem nome. O checklist agora cita os dois, mas essas duas regras ainda não passaram por uma rodada.
 
 O juiz também precisou de ajustes: alguns critérios eram mais rígidos que a regra que conferiam. Quando um relatório reprovava, o juiz era rodado de novo à mão, pedindo o motivo de cada item, para cada correção ir para o lugar certo: a skill ou o teste. Os casos 1, 2, 3, 8 e 13 agora avaliam cada critério com um juiz próprio, então uma falha diz qual item reprovou.
 
@@ -218,10 +231,11 @@ O Claude só vê o nome e a descrição da skill até um pedido combinar com ela
 
 ## Próximos passos
 
-A versão 1.0.0 é a que este README descreve. O que pode vir depois:
+A versão 1.1.0 é a que este README descreve. O que pode vir depois:
 
-- **Testar as partes do checklist que nenhum caso cobre ainda:** teclado em componentes próprios (menus, abas), mensagens de status, o nível da página (`lang`, título), tamanho de alvo e animação.
-- **Um segundo projeto real, em Next.js.** O shadcn-admin usa Vite, então as checagens do Next.js (`app/layout.tsx`, `metadata`) ainda não rodaram em código de verdade. Um projeto com Tailwind v3 testaria esse caminho também.
+- **Rodar os 13 casos de novo na 1.1.0.** Eles rodaram pela última vez na 1.0.0. As mudanças do item 13 rodaram só no blog.
+- **Testar as partes do checklist que nenhum caso cobre ainda:** teclado em componentes próprios (menus, abas), mensagens de status, o nível da página (`lang`, título) e animação.
+- **Um projeto real com Tailwind v3.** Os dois projetos reais usam a v4, então o caminho do `tailwind.config.js` ainda não rodou em código de verdade.
 - **Mais execuções por caso.** As últimas mudanças rodaram duas vezes cada caso.
 - **Ler o `tailwind.config.ts`.** Hoje o script lê só configs `.js`, `.cjs` e `.mjs`.
 - **Modo PR:** separar o que o pull request criou do que já existia.

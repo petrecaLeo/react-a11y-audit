@@ -72,12 +72,12 @@ Five rules and 51 elements came down to three files in the project, plus a chat 
 ## What it checks
 
 - **Semantics:** clickable `div`s, links without `href`, headings, landmarks, lists and tables
-- **Names:** icon-only buttons, `alt` text, SVGs, vague links, `aria-label` that doesn't match the visible text
+- **Names:** icon-only buttons, `alt` text, SVGs, vague links, dialogs, `aria-label` that doesn't match the visible text
 - **Forms:** labels, errors linked to their field, groups, `autoComplete`, blocked paste
-- **Keyboard and focus:** removed outlines, `tabIndex`, hover-only menus, modals, custom widgets
+- **Keyboard and focus:** removed outlines, `tabIndex`, hover-only menus, modals, custom widgets, scrollable boxes like code blocks
 - **ARIA:** `aria-hidden` on focusable elements, missing or repeated ids, invalid values
 - **Dynamic content:** status messages, live regions, loading states, route changes
-- **Color:** text and UI contrast (computed with a script, never estimated), color as the only cue. Tailwind classes are turned into real colors first, for v3 and v4, including the project's own colors from `@theme` or `tailwind.config.js` and CSS variables in `:root` and `.dark` (as in shadcn/ui), with a result for each mode. To fix, it offers a shade the project already has before a new hex
+- **Color:** text and UI contrast (computed with a script, never estimated), color as the only cue. Tailwind classes are turned into real colors first, for v3 and v4, including the project's own colors from `@theme` or `tailwind.config.js` and CSS variables in `:root` and `.dark` (as in shadcn/ui), with a result for each mode. Colors set in the project's CSS count too (`.prose` links, inline code). To fix, it offers a shade the project already has before a new hex
 - **Target size, motion and media:** 24×24 px targets, drag-only actions, autoplay, captions
 - **Page level:** `lang`, page titles, skip links, blocked zoom
 
@@ -86,7 +86,7 @@ Each finding comes with a severity (critical, serious, moderate, minor), the WCA
 ## What it doesn't do
 
 - **It's for the web.** React Native is out: its checks are about HTML, ARIA and the browser.
-- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component or runtime state goes to a "Check in the browser" list instead of being guessed. The same goes for Tailwind colors the script can't resolve: CSS variables outside `:root` and `.dark`, a transparent background when the color behind it is unknown, and `tailwind.config.ts`.
+- **It reads code. It doesn't render the page.** Anything that depends on CSS it can't see, a theme, a third-party component whose code it can't read or runtime state goes to a "Check in the browser" list instead of being guessed. The same goes for Tailwind colors the script can't resolve: CSS variables outside `:root` and `.dark`, a transparent background when the color behind it is unknown, and `tailwind.config.ts`.
 - **It never says a component "is accessible".** Code review and automated tools cover only part of WCAG. Test with the keyboard and a screen reader too.
 - **It doesn't change colors on its own.** A color is often a design decision the developer can't change alone. The skill computes the ratio and a color that passes, preferring a shade the project already has (`text-gray-500` instead of a new hex), then asks: apply it, keep it and flag it to design, or change the theme token. If colors belong to the design team, it writes a short message you can paste to them.
 - **It doesn't guess the scope.** If you don't say what to audit, it asks first: the files changed on your branch, a pull request, a folder or component, or the whole repository. One component and a whole repository are very different jobs, in time and in tokens.
@@ -176,6 +176,18 @@ The cases above were written for the skill, so they can't show everything. To ch
 
 The skill also found what axe can't see on a loaded page: radio groups with no name in a closed drawer, the settings menu on mobile, input borders at 1.23:1 (1.4.11), focus that disappears in Windows high contrast mode, a skipped heading level, a link with no visual cue and a card title that isn't a heading.
 
+**A Next.js blog.** The second project is [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) (10.5k stars; Next.js 15 App Router, Tailwind v4, Headless UI and the pliny package; commit `b45bef6`). axe ran on 7 pages in light and dark mode, on mobile with the menu open, and with the theme menu open. The skill audited three parts from the code (the home page, the header with the mobile menu, and a post page) and mapped axe's results for a tag page. In those three parts, axe found 6 problems, counting each rule once per part: pink links and tags at 3.58:1, tags under 24px (2.5.8) on the home page and on the post page, code blocks that can't be scrolled with the keyboard, and, only with the theme menu open, radio roles inside a menu. On the post page, the contrast failures include inline code at 4.40:1 in dark mode.
+
+| | First run | After the fixes in item 13 (2 runs) |
+|---|---|---|
+| axe's problems found from the code | 3 of 6 | 5 of 6 and 6 of 6 |
+| Colors set in the CSS (`.prose` links, inline code) | sent to the browser list | computed: 3.58:1 and 4.40:1, as axe measured |
+| Package components (pliny's newsletter form and code block) | not read | read: the button at 3.58:1, errors that aren't announced, a copy button that only appears on mouse hover |
+| Skip link when the page has a `<main>` | Moderate | Minor (best practice) |
+| axe's results mapped to the code (tag page) | 2 of 2, with 15 elements counted out of 16 | 2 of 2, with the right count |
+
+From the code, it also found what axe doesn't flag on a loaded page: links in the mobile menu with a 0px focus outline (`outline outline-0` beats the global focus style), the mobile menu's dialog with no name, and a menu button with no `aria-expanded`.
+
 ### What testing changed
 
 1. **Contrast estimated.** One answer suggested a color "about 7.9:1" when it was 7.81:1. Now every ratio, including suggested colors, is computed with the skill's `scripts/contrast.mjs`.
@@ -190,6 +202,7 @@ The skill also found what axe can't see on a loaded page: radio groups with no n
 10. **The real project.** On shadcn-admin, the first run missed both of axe's problems: it didn't read the shared pagination, and it sent the badge on a transparent background to the browser list. On one page it read files with `cat`, which was blocked, and gave up on the script too. It also had 4 false findings: `autoComplete` asked for in a form where an admin edits other people, a label that the form wrapper already links, and two lucide icons that are already hidden. Now the script takes `--behind` for transparent backgrounds and reads theme colors with alpha, and the skill reads every shared component a page renders, reads files with the file tools, and moves anything it would hedge ("may", "check first") to the browser list.
 11. **The judge misread its own criteria.** With every item in one criterion, the judge failed 20 to 30% of correct reports in cases 1, 2 and 8, without saying why. With one judge per item, the failures named the item, and the criteria turned out open to another reading: the favorite state, given as an example of an invented finding, also caught an optional suggestion; "no code block" for the message to design was read as a rule for the whole answer; and a question inside that message looked like asking the user. With clearer criteria, the last round passed 26 of 26.
 12. **Severity, and a label beside the select.** On the real project, best practices came as "Serious" (a table without a name, the same name in every row). The checklist now lists them as Minor at most. In one run the skill read the pagination but missed the select: the text "Rows per page" sits beside it without labelling it, and a Radix select doesn't take its name from the value it shows. The checklist now says so, and both pages found it again, as Critical, like axe.
+13. **The Next.js blog.** The first run sent the colors set in CSS (`.prose` links, inline code) to the browser list, didn't open the package components the page renders (pliny's newsletter form and code block), and didn't see that tags 20px tall in a wrapping row fail 2.5.8. It also missed the name of a Headless UI dialog, because the checklist only covered local copies like shadcn/ui, and it rated a missing skip link as Moderate on pages with a `<main>`, which already meets 2.4.1. Now the skill reads the global CSS and the package components it can read, `contrast.mjs` takes `var(--x)` as written in a stylesheet, and the checklist covers text links as targets, dialogs and nested widgets from headless libraries, scrollable boxes with nothing to focus, and skip links as best practice when there's a `<main>`. In the last round, the header case missed the mobile menu's `outline-0` in 2 of 2 runs, and one run reported an icon inside a button that already has a name. The checklist now names both, but those two rules haven't been through a run yet.
 
 The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test. Cases 1, 2, 3, 8 and 13 now grade each criterion with its own judge, so a failure says which item failed.
 
@@ -218,10 +231,11 @@ Claude only sees the skill's name and description until a request matches. Then 
 
 ## Next steps
 
-Version 1.0.0 is what this README describes. What could come next:
+Version 1.1.0 is what this README describes. What could come next:
 
-- **Test the parts of the checklist that no case covers yet:** keyboard in custom widgets (menus, tabs), status messages, page level (`lang`, title) and target size and motion.
-- **A second real project, in Next.js.** shadcn-admin uses Vite, so the Next.js checks (`app/layout.tsx`, `metadata`) haven't run on real code yet. One with Tailwind v3 would also test that path.
+- **Run the 13 cases again on 1.1.0.** They last ran on 1.0.0. The changes in item 13 ran only on the blog.
+- **Test the parts of the checklist that no case covers yet:** keyboard in custom widgets (menus, tabs), status messages, page level (`lang`, title) and motion.
+- **A real project with Tailwind v3.** Both real projects use v4, so the `tailwind.config.js` path hasn't run on real code yet.
 - **More runs per case.** The last changes ran twice per case.
 - **Read `tailwind.config.ts`.** Today the script reads only `.js`, `.cjs` and `.mjs` configs.
 - **PR mode:** report what a pull request introduced apart from what was already there.

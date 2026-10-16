@@ -93,7 +93,7 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 ## 4. Keyboard and focus
 
 - **`tabIndex` greater than 0.** It breaks the natural Tab order. Remove it and fix the DOM order. 2.4.3 Focus Order (A). Serious.
-- **Focus outline removed** (`outline: none`, `outline-none`, `focus:outline-none`) with no `focus-visible` style in its place. 2.4.7 Focus Visible (AA). Serious. If the focus style may come from global CSS you can't see, mark it "Check in the browser".
+- **Focus outline removed** (`outline: none`, `outline-none`, `focus:outline-none`, `outline-0`) with no `focus-visible` style in its place. 2.4.7 Focus Visible (AA). Serious. A global `:focus-visible` rule in `@layer base` doesn't save it: utility classes win over the base layer, so `outline outline-0` on a link leaves it with a 0px outline. If the focus style may come from global CSS you can't see, mark it "Check in the browser".
 - **Focus shown only with `ring` in Tailwind v4.** A `ring` is a `box-shadow`, and Windows high contrast mode (forced colors) removes it. In v4, `outline-none` removes the outline for real (v3's `outline-none`, a transparent outline that forced colors still shows, is now `outline-hidden`). So `focus-visible:outline-none focus-visible:ring-2` leaves no focus in that mode. Use `outline-hidden` with the ring, or an `outline` style. 2.4.7 (AA). Moderate.
 - **Focus ring with low contrast.** It needs 3:1 against the colors next to it. 1.4.11 Non-text Contrast (AA). Serious.
 - **Sticky header, footer or cookie banner** that can cover the focused element. Check in the browser. The usual fix is `scroll-padding-top` on `html`. 2.4.11 Focus Not Obscured (Minimum) (AA). Moderate.
@@ -117,7 +117,8 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
   ```
 
 - **Custom widgets** (tabs, dropdown, combobox, accordion, menu). Follow the keyboard model of the ARIA Authoring Practices Guide (APG) and keep the states in sync: `aria-expanded`, `aria-selected`, `aria-controls`. A tested headless library is often safer than a hand-made widget. 2.1.1 (A), 4.1.2 (A). Serious.
-- **Local copies of a headless library**, like shadcn/ui in `components/ui/` (it wraps Radix). The library already moves and traps focus, closes on Escape and sets the roles: don't report those. Check what it can't do for you: the props passed. A Radix `DialogContent` needs a `DialogTitle` (hide it with `VisuallyHidden` if there's no visible title), and icon buttons still need an `aria-label`. 4.1.2 (A). Serious.
+- **Headless libraries** (Radix, Headless UI, React Aria), from the package or as local copies like shadcn/ui in `components/ui/` (it wraps Radix). The library already moves and traps focus, closes on Escape and sets the roles: don't report those. Check what it can't do for you: the props passed. A dialog needs a name: Radix `DialogContent` and Headless UI `Dialog` take it from a `DialogTitle` (hide it with `VisuallyHidden` or `className="sr-only"` if there's no visible title), or from `aria-label` on the dialog. Icon buttons still need an `aria-label`. 4.1.2 (A). Serious. Putting one widget inside another (a `RadioGroup` inside a `Menu`) mixes the roles each one sets (radio inside menu, menuitem inside radio), and screen readers can't follow it: use the library's own pattern for it, or `role="menuitemradio"` with `aria-checked`. 4.1.2 (A). Serious.
+- **Scrollable box with nothing to focus inside.** A box with `overflow-auto`, `overflow-x-auto` or `overflow-scroll` and only text in it can't be scrolled with the keyboard in some browsers. Code blocks are the usual case: `prose` from `@tailwindcss/typography` makes `pre` scroll. Add `tabIndex={0}` to the box (and an `aria-label` when it isn't a `pre`). In MDX, set it in the component the `pre` entry of the MDX components renders; when that one comes from a package and drops extra props, use your own `pre`. 2.1.1 Keyboard (A). Serious.
 - **`autoFocus` on page load.** It skips the content before the field for screen reader users. Fine inside a dialog. Minor.
 
 ## 5. ARIA
@@ -157,11 +158,13 @@ Each item lists what to look for in the code, the WCAG 2.2 criterion and level, 
 node <this skill's directory>/scripts/contrast.mjs --project <repository root> text-gray-400 bg-white text-white "#0ea5e9"
 ```
 
-Run it as a command of its own, starting with `node` and the script's full path: no `cd`, no variables, nothing before it with `;` or `&&`. Some setups only allow commands that start with `node` and block the rest. Quote values with spaces or parentheses (`"rgb(0, 0, 0)"`). Each color can be a hex, `rgb()`, `hsl()`, `oklch()`, a basic name (`white`) or a Tailwind class. Put all the pairs of a component in one command. List every text with its background, including colors set inside the local wrappers you read: a `CardDescription` from `components/ui/card.tsx` brings its own text color, and its background is the nearest parent with a `bg-` class, which may be in another wrapper.
+Run it as a command of its own, starting with `node` and the script's full path: no `cd`, no variables, nothing before it with `;` or `&&`. Some setups only allow commands that start with `node` and block the rest. Quote values with spaces or parentheses (`"rgb(0, 0, 0)"`). Each color can be a hex, `rgb()`, `hsl()`, `oklch()`, a basic name (`white`), a Tailwind class or a CSS variable (`var(--color-primary-500)`). Put all the pairs of a component in one command. List every text with its background, including colors set inside the local wrappers you read: a `CardDescription` from `components/ui/card.tsx` brings its own text color, and its background is the nearest parent with a `bg-` class, which may be in another wrapper.
 
 For each pair, it prints the ratio, whether it passes 4.5:1 and 3:1, and what passes: a shade from the same palette when there is one (`text-gray-500`), and the closest new color. Use `--min 3` for large text and UI parts. When the foreground is lighter than the background (white text on a button), the background is usually what should change, so the script suggests it first. Offer the palette shade first: the project already has it, so it's an easy change to accept.
 
 **Tailwind classes.** The script reads the Tailwind version from `package.json`, uses that version's default palette, and reads the project's own colors (`@theme` in v4 CSS files, `tailwind.config.js` in v3). It follows `var(--x)` to `:root` and `.dark`, as in shadcn/ui; when a color changes in `.dark`, it gives one result for each mode, and both go in the report. It blends text opacity like `text-white/70` with the background. For a background with opacity (`bg-red-500/10`, or a theme color like `oklch(1 0 0 / 15%)`), add `--behind` with the color behind it, usually the nearest parent background (`--behind bg-background`); pairs with different colors behind them go in separate commands. Check each state as its own pair, with matching variants: `dark:text-gray-300` goes with `dark:bg-gray-900`, not with `bg-white`. With variants (`cva`, a `variant` prop), check each variant and `hover:` state that has its own colors; a short table (variant, state, colors, ratio) keeps it readable. What it can't resolve (variables set outside `:root` and `.dark`, a background with opacity and no `--behind`, `tailwind.config.ts`) goes to "Check in the browser". Some v4 colors are outside sRGB; the script says so, and their ratios are close but not exact.
+
+**Colors in the project's CSS** count too. Rules like `.prose a { color: var(--color-primary-500) }`, inline `code` in posts, a syntax-highlighting theme (`prism.css`) or `a { color }` in a base layer set colors you won't see as classes. Put those pairs in the command as well, written as in the CSS: the script reads `var(--color-primary-500)` and `var(--muted-foreground)`. The background is the page's or the block's own (a code block sets its `background`), in each mode: `dark:prose-invert` and `.dark` rules change both.
 
 Gradients and text over images also go to "Check in the browser".
 
@@ -169,7 +172,7 @@ Gradients and text over images also go to "Check in the browser".
 
 ## 8. Target size, motion and media
 
-- **Small click target.** At least 24×24 CSS px, or enough space so a 24px circle around it doesn't touch another target. Links inside a sentence are exempt. An icon button with `w-4 h-4 p-0` is 16px. 2.5.8 Target Size (Minimum) (AA). Moderate.
+- **Small click target.** At least 24×24 CSS px, or enough space so a 24px circle around it doesn't touch another target. Links inside a sentence are exempt. An icon button with `w-4 h-4 p-0` is 16px. Text links that aren't in a sentence (tags, chips, filters, lists of links) are only as tall as their line: `text-xs` is 16px and `text-sm` is 20px, unless padding or `min-h-6` adds height. In a `flex-wrap` row with no `gap-y`, or with `mr-1` between them, they fail. The classes show this, so it's a finding, not a browser check. Fix it with `inline-flex min-h-6 items-center`, padding or a bigger gap. 2.5.8 Target Size (Minimum) (AA). Serious.
 - **Drag only** (sortable list, slider, kanban). Offer a single-click alternative, like move up/down buttons. 2.5.7 Dragging Movements (AA). Serious.
 - **Carousel or animation that plays by itself** for more than 5 seconds. It needs a pause button. 2.2.2 Pause, Stop, Hide (A). Serious.
 - **Large motion** (parallax, zoom, big slides) ignoring `prefers-reduced-motion`. 2.3.3 is AAA, so report it as Minor.
@@ -180,7 +183,7 @@ Gradients and text over images also go to "Check in the browser".
 
 - **`<html>` without `lang`** (in Next.js, in `app/layout.tsx`). 3.1.1 Language of Page (A). Serious.
 - **Same title on every route** (`<title>` or `metadata.title`). 2.4.2 Page Titled (A). Moderate.
-- **Long header or menu with no skip link** to the main content. 2.4.1 Bypass Blocks (A). Moderate.
+- **Long header or menu with no skip link and no `<main>`.** 2.4.1 Bypass Blocks (A). Moderate. A `<main>` landmark (in Next.js, often in `app/layout.tsx`) or headings already meet 2.4.1, so with one of them a skip link is best practice (section 11).
 - **Zoom blocked** by `maximum-scale=1` or `user-scalable=no` in the viewport meta. 1.4.4 Resize Text (AA). Serious.
 
 ## 10. Don't report
@@ -188,6 +191,8 @@ Gradients and text over images also go to "Check in the browser".
 - 4.1.1 Parsing. It was removed in WCAG 2.2.
 - Contrast of disabled controls.
 - AAA criteria as failures. Mention them as Minor suggestions at most.
+- An icon inside a button or link that already has an `aria-label`: the label replaces the content, so the icon isn't read even without `aria-hidden`.
+- A `button` with no `type` outside a form.
 
 ## 11. Best practice, not a failure
 
@@ -198,4 +203,5 @@ Report these as Minor at most, and say they are best practice rather than a WCAG
 - The same name on a control in every row ("Open menu", "Select row") when the row has a name or header that gives context. With no context at all, Moderate (2.4.6).
 - A `nav` or another landmark without a name when it's the only one of its kind on the page. With two or more of the same kind, Moderate.
 - Pagination without `aria-current="page"` on the current page.
+- No skip link when the page has a `<main>` landmark.
 - The same words repeated in `aria-label`, `title` and hidden text.

@@ -47,7 +47,7 @@ Scanners measure the real page. For contrast, they report the actual text and ba
 
 ## Report
 
-Before the findings, add a table that maps each violation to its source:
+Before the findings, add a table that maps each violation to its source. Take the element counts from the data, not by eye: in a long JSON file, count them with a command of its own, like `node -e "for (const v of require('./axe.json').violations) console.log(v.id, v.nodes.length)"`.
 
 | Rule | Elements | Source | How I found it |
 |---|---|---|---|

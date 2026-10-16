@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Computes the WCAG contrast ratio of color pairs and the closest colors that pass.
 // Usage: node contrast.mjs [--project <dir>] [--v3 | --v4] [--min 3] [--behind <color>] <foreground> <background> [<foreground> <background> ...]
-// A color is a hex, rgb(), hsl() or oklch() value, a basic CSS name (white, red) or a Tailwind class (text-gray-400, bg-brand-500, text-white/70).
+// A color is a hex, rgb(), hsl() or oklch() value, a basic CSS name (white, red), a Tailwind class (text-gray-400, bg-brand-500, text-white/70)
+// or a CSS variable as written in a stylesheet (var(--color-primary-500), var(--muted-foreground)).
 // --behind is the color behind a background with opacity (bg-red-500/10 inside a bg-background card).
 // Example: node contrast.mjs --project . text-gray-400 bg-white text-white "#0ea5e9"
 
@@ -64,8 +65,14 @@ async function read(arg) {
   const color = parseColor(arg);
   if (color) return { arg, value: color };
   tw ??= await loadTailwind(project, version);
-  const r = resolveClass(arg, tw);
-  if (r.problem === "not a color utility") return { arg, problem: "not a color this script can read: use a hex, rgb(), hsl(), oklch() or a Tailwind color class" };
+  // A CSS variable as written in a stylesheet: var(--color-pink-500) is a Tailwind v4 theme color, other names come from :root and .dark.
+  const cssVar = arg.match(/^var\(\s*--([\w-]+)\s*\)$/);
+  const cls = !cssVar ? arg : cssVar[1].startsWith("color-") ? `text-${cssVar[1].slice(6)}` : `text-[${arg}]`;
+  const r = { ...resolveClass(cls, tw), arg };
+  if (cssVar && cls !== `text-${cssVar[1].slice(6)}`) {
+    for (const f of r.found ?? []) f.note = f.hex ? f.note.replace("arbitrary value, ", "") : "a variable this script can't resolve: check in the browser";
+  }
+  if (r.problem === "not a color utility") return { arg, problem: "not a color this script can read: use a hex, rgb(), hsl(), oklch(), a Tailwind color class or var(--x)" };
   return { arg, ...r };
 }
 
