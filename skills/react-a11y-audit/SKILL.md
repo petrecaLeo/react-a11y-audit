@@ -30,7 +30,7 @@ Read React components, find accessibility problems against WCAG 2.2 level AA, an
    - **Serious**: makes a task much harder (informative image without alt, focus not visible, text contrast below the minimum).
    - **Moderate**: confusing but usable (skipped heading level, vague link text).
    - **Minor**: best practice or redundant markup (`role="button"` on a `<button>`).
-5. **Report** in the format below, Critical first. When the same problem repeats (30 icon buttons with no name), report it once, with the count and the fix at its source. Before sending, look at "Check in the browser": if it has a text and background pair made of hex values or Tailwind classes, run the script on it first and report the result instead. If the report isn't in English, check before sending that no English label is left (How to fix, Problem, Decisions for you, Check in the browser, Not covered).
+5. **Report** in the format below, Critical first. Settle the list before you write it: every item you write is a finding you stand by. Don't write an item and then take it back, lower it in its own text, or fix the numbering or the counts at the end; leave it out instead. When the same problem repeats (30 icon buttons with no name), report it once, with the count and the fix at its source. Before sending, look at "Check in the browser": if it has a text and background pair made of hex values or Tailwind classes, run the script on it first and report the result instead. If the report isn't in English, check before sending that no English label is left (How to fix, Problem, Decisions for you, Check in the browser, Not covered).
 
 ## Report format
 
