@@ -129,25 +129,25 @@ A skill only helps if it runs when it should, stays out of the way when it shoul
 
 | # | Request | Should trigger | Triggered |
 |---|---|---|---|
-| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 40 of 40 |
-| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 43 of 43 |
-| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 35 of 35 |
-| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 27 |
-| 5 | "Convert this component to TypeScript" | no | 1 of 33 |
-| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 21 of 21 |
-| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 29 of 29 |
-| 8 | "Revisa esse banner? As cores são do time de design" | yes | 36 of 36 |
-| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 22 of 22 |
-| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 16 of 16 |
-| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 8 |
-| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 8 |
-| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 10 of 10 |
+| 1 | "Audit the accessibility of this component" (ProductCard) | yes | 44 of 44 |
+| 2 | "Um cliente não consegue assinar a newsletter com leitor de tela" (Portuguese, without the word "accessibility") | yes | 47 of 47 |
+| 3 | Lighthouse violations pasted, "fix them in the Header" | yes | 37 of 37 |
+| 4 | "This ProductCard re-renders too much, how do I stop that?" | no | 0 of 29 |
+| 5 | "Convert this component to TypeScript" | no | 1 of 35 |
+| 6 | "Can you check the accessibility of my app?" in a repository with several components | yes | 23 of 23 |
+| 7 | axe results for a page: "where does each problem come from in our code?" | yes | 31 of 31 |
+| 8 | "Revisa esse banner? As cores são do time de design" | yes | 42 of 42 |
+| 9 | "Check the accessibility of src/components/PlanCard.tsx" (Tailwind v4, with a project color) | yes | 24 of 24 |
+| 10 | "Check the accessibility of src/components/DeleteAccount.tsx" (shadcn/ui dialog, a color that fails only in dark mode) | yes | 18 of 18 |
+| 11 | "Can you check the accessibility of this React Native component?" | no | 0 of 10 |
+| 12 | "My search input loses focus every time I type a letter. Why?" | no | 0 of 10 |
+| 13 | "Audit the accessibility of this form" (a form with no real problem) | yes | 12 of 12 |
 
-Right in 327 of 328 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 also uses the word "focus". It stayed out every time, except once in case 5's 33 runs.
+Right in 361 of 362 runs. Cases 4, 5 and 12 have accessibility problems in their code, so the skill had a reason to fire, and case 12 also uses the word "focus". It stayed out every time, except once in case 5's 35 runs.
 
 ### Is it better than Claude without it?
 
-Same requests and the same LLM judge (Claude Sonnet 5.5) on both sides. The "with" column is from the last round of each case, on version 1.1.0 or 1.1.1 (see item 14). The "without" column is from the last round run without the skill (twice per case, case 9 four times), graded against the criteria of that time.
+Same requests and the same LLM judge (Claude Sonnet 5.5) on both sides. The "with" column is the last round of each case: version 1.1.2 for cases 1, 2 and 8, and 1.1.1 for the others (see item 15). The "without" column is from the last round run without the skill (twice per case, case 9 four times), graded against the criteria of that time.
 
 | # | With the skill | Without | What made the difference |
 |---|---|---|---|
@@ -204,6 +204,7 @@ From the code, it also found what axe doesn't flag on a loaded page: links in th
 12. **Severity, and a label beside the select.** On the real project, best practices came as "Serious" (a table without a name, the same name in every row). The checklist now lists them as Minor at most. In one run the skill read the pagination but missed the select: the text "Rows per page" sits beside it without labelling it, and a Radix select doesn't take its name from the value it shows. The checklist now says so, and both pages found it again, as Critical, like axe.
 13. **The Next.js blog.** The first run sent the colors set in CSS (`.prose` links, inline code) to the browser list, didn't open the package components the page renders (pliny's newsletter form and code block), and didn't see that tags 20px tall in a wrapping row fail 2.5.8. It also missed the name of a Headless UI dialog, because the checklist only covered local copies like shadcn/ui, and it rated a missing skip link as Moderate on pages with a `<main>`, which already meets 2.4.1. Now the skill reads the global CSS and the package components it can read, `contrast.mjs` takes `var(--x)` as written in a stylesheet, and the checklist covers text links as targets, dialogs and nested widgets from headless libraries, scrollable boxes with nothing to focus, and skip links as best practice when there's a `<main>`. In the last round, the header case missed the mobile menu's `outline-0` in 2 of 2 runs, and one run reported an icon inside a button that already has a name. The checklist now names both.
 14. **The 13 cases on 1.1.0.** The first round passed 22 of 26. Case 8 failed both runs on the message for design, but a judge re-run by hand passed it, and it passed 2 of 2 when run again. In case 3, the criterion asked for hidden icons even when the button has an `aria-label`, which the checklist says isn't needed, so the test was fixed. In case 9, one report gave the ratio for `text-gray-400` without its hex, so the skill now writes each class with its hex. On the blog's header, the two new rules worked in one run of 2. The other run sent the `outline-0` to the browser list after reading the global CSS, reported a button of exactly 24px as too small, and took back items in the same report ("I'm removing this item from the count"). Now the checklist says the outline is a finding once the global CSS is read and that 24px passes, and the skill settles the list before writing it. On 1.1.1, cases 3 and 9 passed 2 of 2, and the header case found the outline in 2 of 2, with no false target and no item taken back.
+15. **The 13 cases on 1.1.1.** The round passed 23 of 26, and every case triggered right. The judge in `claude plugin eval` answers with one word, under a system prompt that asks it to be strict. The same prompt, re-run by hand with a request for the reason, showed what failed in case 8: `// before` and `// after` comments in a Portuguese report, and a message for design that gave the minimum once for both colors. Now the skill translates the code comments and gives each color the minimum for its text size. The judge also counted "Ver ofertas" called a button (it's a link styled as one) and the "WCAG 2.2:" line as mistakes, so case 8's criteria now say both are fine. Case 1's failure passed when judged again with the same prompt. On 1.1.2, cases 1, 2 and 8 passed 2 of 2.
 
 The judge also needed fixes: some criteria were stricter than the rule they were checking. When a report failed, the judge was re-run by hand with a request for the reason behind each item, so that each fix went to the right place: the skill or the test. Cases 1, 2, 3, 8 and 13 now grade each criterion with its own judge, so a failure says which item failed.
 
@@ -232,9 +233,9 @@ Claude only sees the skill's name and description until a request matches. Then 
 
 ## Next steps
 
-Version 1.1.1 is what this README describes. What could come next:
+Version 1.1.2 is what this README describes. What could come next:
 
-- **Run all 13 cases on 1.1.1.** The changes in item 14 ran on cases 3 and 9 and on the blog's header, not on the other 11 cases.
+- **Run all 13 cases on 1.1.2.** All 13 ran on 1.1.1. The changes in item 15 ran on cases 1, 2 and 8.
 - **Test the parts of the checklist that no case covers yet:** keyboard in custom widgets (menus, tabs), status messages, page level (`lang`, title) and motion.
 - **A real project with Tailwind v3.** Both real projects use v4, so the `tailwind.config.js` path hasn't run on real code yet.
 - **More runs per case.** The last changes ran twice per case.
