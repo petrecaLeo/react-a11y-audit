@@ -4,6 +4,10 @@
 
 Uma skill do Claude Code que revisa componentes React em busca de problemas de acessibilidade, com base no WCAG 2.2 nível AA. Ela encontra problemas de contraste, ARIA, foco, navegação por teclado, rótulos de formulário e texto alternativo, e escreve a correção no código para cada um. Cole o resultado de um scanner como o axe ou o Lighthouse, e ela acha o componente por trás de cada problema.
 
+![O Claude Code rodando a react-a11y-audit num componente ProductCard. A skill carrega, lê o componente e o CSS global, calcula o contraste com o script e lista cinco problemas, cada um com o critério do WCAG e o código de antes e depois. Ela pergunta antes de mudar a cor do preço.](docs/demo-pt.gif)
+
+*Uma sessão real na versão 1.1.3, com o Claude Sonnet 5.5. A espera está 3× mais rápida.*
+
 ## Exemplo
 
 Você pede: *"Audit the accessibility of this component before we ship it"*, com este componente:
@@ -227,6 +231,7 @@ skills/react-a11y-audit/
 ├── scripts/contrast.mjs       calcula o contraste e as cores mais próximas que passam
 └── scripts/tw-color.mjs       transforma classes do Tailwind em cores (paletas em tw-colors.json)
 evals/                         os 13 pedidos de teste e seus graders
+docs/                          os GIFs de demonstração e a imagem de prévia do GitHub
 .claude-plugin/                manifestos do plugin e do marketplace
 ```
 
@@ -243,7 +248,6 @@ A versão 1.1.3 é a que este README descreve. O que pode vir depois:
 - **Modo PR:** separar o que o pull request criou do que já existia.
 - **Conferir depois de corrigir:** rodar o que o projeto já tiver (eslint-plugin-jsx-a11y, Playwright ou Storybook com axe) para fechar o ciclo auditar, corrigir e conferir.
 - **Dizer o que o leitor de tela deve falar** em cada correção ("Adicionar aos favoritos, botão"), mais os passos de teclado, para qualquer pessoa conferir.
-- **Um GIF da skill rodando** neste README.
 
 ## Licença
 

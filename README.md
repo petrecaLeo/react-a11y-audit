@@ -4,6 +4,10 @@
 
 A Claude Code skill that reviews React components for accessibility against WCAG 2.2 level AA. It finds problems with contrast, ARIA, focus, keyboard navigation, form labels and alt text, and writes the code fix for each one. Paste the results of a scanner like axe or Lighthouse, and it finds the component behind each problem.
 
+![Claude Code running react-a11y-audit on a ProductCard component. The skill loads, reads the component and the global CSS, computes the contrast with its script, and lists five problems, each with its WCAG criterion and before and after code. It asks before changing the price color.](docs/demo-en.gif)
+
+*A real session on version 1.1.3 with Claude Sonnet 5.5. The waiting is sped up 3×.*
+
 ## Example
 
 You ask: *"Audit the accessibility of this component before we ship it"*, with this component:
@@ -227,6 +231,7 @@ skills/react-a11y-audit/
 ├── scripts/contrast.mjs       computes contrast ratios and the closest colors that pass
 └── scripts/tw-color.mjs       turns Tailwind classes into colors (palettes in tw-colors.json)
 evals/                         the 13 test requests and their graders
+docs/                          the demo GIFs and the GitHub preview image
 .claude-plugin/                plugin and marketplace manifests
 ```
 
@@ -243,7 +248,6 @@ Version 1.1.3 is what this README describes. What could come next:
 - **PR mode:** report what a pull request introduced apart from what was already there.
 - **Check after fixing:** run what the project already has (eslint-plugin-jsx-a11y, Playwright or Storybook with axe) to close the audit, fix, check loop.
 - **Say what a screen reader should announce** for each fix ("Add to favorites, button"), plus the keyboard steps, so anyone can check it.
-- **A GIF of the skill running** in this README.
 
 ## License
 
